@@ -1,0 +1,198 @@
+"""Tests for core.config.
+
+Covers the four things the build plan asked to verify before any network code
+exists: (1) five nodes load in order with secrets correctly substituted and the
+keyless provider passing through; (2) a missing secret raises a clear error;
+(3) structural problems (wrong node count, out-of-range params) raise clearly;
+(4) the optional numeric sections fall back to the agreed defaults.
+
+Tests write a temporary config.toml and .env so they never touch the real repo
+files or the real environment.
+"""
+
+from __future__ import annotations
+
+import textwrap
+
+import pytest
+
+from core import config
+from core.config import ConfigError
+
+
+# --- Fixtures: write temp config + env -------------------------------------
+
+FULL_NODES = """
+[[nodes]]
+name = "chainstack"
+url_template = "wss://chainstack.example/${CHAINSTACK_KEY}"
+
+[[nodes]]
+name = "publicnode"
+url_template = "wss://polygon-bor-rpc.publicnode.com"
+
+[[nodes]]
+name = "drpc"
+url_template = "wss://polygon.drpc.org?dkey=${DRPC_KEY}"
+
+[[nodes]]
+name = "quicknode"
+url_template = "wss://${QUICKNODE_SUBDOMAIN}.matic.quiknode.pro/${QUICKNODE_KEY}"
+
+[[nodes]]
+name = "alchemy"
+url_template = "wss://alchemy.example/v2/${ALCHEMY_KEY}"
+"""
+
+FILTER = """
+[filter]
+contracts = ["0xAAA", "0xBBB"]
+order_filled_topic = "0xddee"
+"""
+
+FULL_ENV = """
+CHAINSTACK_KEY=cs_secret
+DRPC_KEY=dr_secret
+QUICKNODE_SUBDOMAIN=myhost
+QUICKNODE_KEY=qn_secret
+ALCHEMY_KEY=al_secret
+"""
+
+
+def _write(tmp_path, *, config_body: str, env_body: str | None = FULL_ENV):
+    cfg = tmp_path / "config.toml"
+    cfg.write_text(textwrap.dedent(config_body))
+    env_path = None
+    if env_body is not None:
+        env = tmp_path / ".env"
+        env.write_text(textwrap.dedent(env_body))
+        env_path = str(env)
+    return str(cfg), env_path
+
+
+# --- Happy path ------------------------------------------------------------
+
+
+def test_loads_five_nodes_in_order_with_secrets(tmp_path):
+    cfg, env = _write(tmp_path, config_body=FULL_NODES + FILTER)
+    c = config.load_config(cfg, env_path=env)
+
+    assert len(c.nodes) == 5
+    # Order is the column mapping.
+    assert [n.name for n in c.nodes] == [
+        "chainstack", "publicnode", "drpc", "quicknode", "alchemy"
+    ]
+    assert [n.index for n in c.nodes] == [1, 2, 3, 4, 5]
+    assert [n.column for n in c.nodes] == [
+        "node_1_arrival_ns", "node_2_arrival_ns", "node_3_arrival_ns",
+        "node_4_arrival_ns", "node_5_arrival_ns",
+    ]
+
+    by_name = {n.name: n for n in c.nodes}
+    # Secrets interpolated.
+    assert by_name["chainstack"].url == "wss://chainstack.example/cs_secret"
+    assert by_name["drpc"].url == "wss://polygon.drpc.org?dkey=dr_secret"
+    # Multiple vars in one template.
+    assert by_name["quicknode"].url == "wss://myhost.matic.quiknode.pro/qn_secret"
+    # Keyless provider passes through unchanged.
+    assert by_name["publicnode"].url == "wss://polygon-bor-rpc.publicnode.com"
+
+
+def test_filter_parsed(tmp_path):
+    cfg, env = _write(tmp_path, config_body=FULL_NODES + FILTER)
+    c = config.load_config(cfg, env_path=env)
+    assert c.filter.contracts == ("0xAAA", "0xBBB")
+    assert c.filter.order_filled_topic == "0xddee"
+
+
+# --- Defaults --------------------------------------------------------------
+
+
+def test_optional_sections_use_defaults(tmp_path):
+    # No [completion]/[writer]/[preflight]/[connection] sections at all.
+    cfg, env = _write(tmp_path, config_body=FULL_NODES + FILTER)
+    c = config.load_config(cfg, env_path=env)
+    assert c.completion.min_nodes_required == 5
+    assert c.completion.timeout_seconds == 10.0
+    assert c.completion.scanner_interval_seconds == 10.0
+    assert c.writer.batch_size == 1000
+    assert c.preflight.ack_timeout_seconds == 10.0
+    assert c.connection.ping_interval_seconds == 5.0
+    assert c.connection.ping_timeout_seconds == 5.0
+    assert c.connection.stop_on_disconnect is True
+
+
+def test_explicit_values_override_defaults(tmp_path):
+    body = FULL_NODES + FILTER + textwrap.dedent("""
+        [completion]
+        min_nodes_required = 4
+        timeout_seconds = 7
+        [writer]
+        batch_size = 250
+        [connection]
+        stop_on_disconnect = false
+        ping_interval_seconds = 3
+        ping_timeout_seconds = 3
+    """)
+    cfg, env = _write(tmp_path, config_body=body)
+    c = config.load_config(cfg, env_path=env)
+    assert c.completion.min_nodes_required == 4
+    assert c.completion.timeout_seconds == 7
+    assert c.completion.scanner_interval_seconds == 10.0  # untouched default
+    assert c.writer.batch_size == 250
+    assert c.connection.stop_on_disconnect is False
+
+
+# --- Failure modes (fail fast, fail clear) ---------------------------------
+
+
+def test_missing_secret_raises_naming_node_and_var(tmp_path):
+    env_missing_drpc = "CHAINSTACK_KEY=x\nQUICKNODE_SUBDOMAIN=h\nQUICKNODE_KEY=y\nALCHEMY_KEY=z\n"
+    cfg, env = _write(tmp_path, config_body=FULL_NODES + FILTER, env_body=env_missing_drpc)
+    with pytest.raises(ConfigError) as exc:
+        config.load_config(cfg, env_path=env)
+    msg = str(exc.value)
+    assert "drpc" in msg and "DRPC_KEY" in msg
+
+
+def test_wrong_node_count_raises(tmp_path):
+    four_nodes = "\n".join(FULL_NODES.strip().split("\n")[:-3])  # drop the 5th node
+    cfg, env = _write(tmp_path, config_body=four_nodes + FILTER)
+    with pytest.raises(ConfigError) as exc:
+        config.load_config(cfg, env_path=env)
+    assert "exactly 5" in str(exc.value)
+
+
+def test_min_nodes_required_out_of_range_raises(tmp_path):
+    body = FULL_NODES + FILTER + "\n[completion]\nmin_nodes_required = 6\n"
+    cfg, env = _write(tmp_path, config_body=body)
+    with pytest.raises(ConfigError):
+        config.load_config(cfg, env_path=env)
+
+
+def test_missing_filter_raises(tmp_path):
+    cfg, env = _write(tmp_path, config_body=FULL_NODES)  # no [filter]
+    with pytest.raises(ConfigError):
+        config.load_config(cfg, env_path=env)
+
+
+def test_duplicate_node_name_raises(tmp_path):
+    dup = FULL_NODES.replace('name = "alchemy"', 'name = "chainstack"')
+    cfg, env = _write(tmp_path, config_body=dup + FILTER)
+    with pytest.raises(ConfigError) as exc:
+        config.load_config(cfg, env_path=env)
+    assert "duplicate" in str(exc.value).lower()
+
+
+def test_missing_config_file_raises(tmp_path):
+    with pytest.raises(ConfigError):
+        config.load_config(str(tmp_path / "nope.toml"), env_path=None)
+
+
+def test_ambient_env_overrides_dotenv(tmp_path, monkeypatch):
+    # .env says one value; an exported env var should win for that run.
+    cfg, env = _write(tmp_path, config_body=FULL_NODES + FILTER)
+    monkeypatch.setenv("CHAINSTACK_KEY", "from_ambient")
+    c = config.load_config(cfg, env_path=env)
+    by_name = {n.name: n for n in c.nodes}
+    assert by_name["chainstack"].url == "wss://chainstack.example/from_ambient"
