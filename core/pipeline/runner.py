@@ -34,13 +34,15 @@ from __future__ import annotations
 
 import asyncio
 import functools
+import os
 import signal
 import time
 from datetime import datetime, timezone
 
-from ..config import Config
+from ..config import Config, NodeConfig
 from ..connect import PreflightError, close_all, open_all
-from .listener import run_listener
+from .disconnect_logger import DisconnectLogger
+from .listener import ListenerExit, run_listener
 from .processor import run_processor
 from .scanner import run_scanner
 from .state import RunState
@@ -81,6 +83,48 @@ def _print_summary(state: RunState, output_path: str) -> None:
         print(f"[summary] node_{i + 1}: {reported:,} reported ({rate:.1f}%)")
 
 
+def _disconnect_log_path(output_path: str) -> str:
+    """The disconnect .txt that pairs with this run's parquet (same stem)."""
+    base, _ext = os.path.splitext(output_path)
+    return base + ".disconnects.txt"
+
+
+def _make_listener_handler(
+    node: NodeConfig,
+    logger: DisconnectLogger,
+    state: RunState,
+    stop_on_disconnect: bool,
+):
+    """Build a done-callback for one listener task.
+
+    Fires when the task completes. A cancellation (the normal shutdown stop) is
+    ignored. A clean ConnectionClosed surfaces as a returned ListenerExit; an
+    unexpected error surfaces as a raised exception -- both are logged as a
+    disconnect, and, if stop_on_disconnect is set, trigger the same graceful
+    shutdown path as Ctrl-C by setting shutdown_event.
+    """
+
+    def handler(task: asyncio.Task) -> None:
+        if task.cancelled():
+            return
+        exc = task.exception()
+        if exc is not None:
+            event = ListenerExit(
+                node=node,
+                monotonic_ns=time.monotonic_ns(),
+                reason=f"listener error: {exc!r}",
+            )
+        else:
+            event = task.result()
+            if event is None:
+                return
+        logger.log(event)
+        if stop_on_disconnect and not state.shutdown_event.is_set():
+            state.shutdown_event.set()
+
+    return handler
+
+
 async def run_ingestion(config: Config, output_path: str) -> int:
     """Run one ingestion to completion. Returns 0 on success, 1 on pre-flight abort."""
     state = RunState.create()
@@ -114,12 +158,17 @@ async def run_ingestion(config: Config, output_path: str) -> int:
             config.completion.scanner_interval_seconds,
         )
     )
-    listener_tasks = [
-        asyncio.create_task(
+    disconnect_logger = DisconnectLogger(_disconnect_log_path(output_path), state)
+    stop_on_disconnect = config.connection.stop_on_disconnect
+    listener_tasks = []
+    for conn in connections:
+        task = asyncio.create_task(
             run_listener(conn.node, conn.websocket, state.raw_queue, state.start_recording)
         )
-        for conn in connections
-    ]
+        task.add_done_callback(
+            _make_listener_handler(conn.node, disconnect_logger, state, stop_on_disconnect)
+        )
+        listener_tasks.append(task)
 
     try:
         print(f"recording started ({len(connections)} nodes) -- Ctrl-C to stop")
@@ -135,7 +184,8 @@ async def run_ingestion(config: Config, output_path: str) -> int:
         for task in producers:
             task.cancel()
         await asyncio.gather(*producers, return_exceptions=True)
-        # NOTE: Stage 7 will inspect listener results here for disconnects.
+        # Disconnects are handled live by the listener done-callbacks; the
+        # cancellations issued just above are ignored by those callbacks.
 
         # (b) Discard the dict (recent incomplete trades dropped by design).
         state.entries.clear()
