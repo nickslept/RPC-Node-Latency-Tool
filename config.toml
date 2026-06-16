@@ -42,9 +42,9 @@ order_filled_topic = "0xd543adfd945773f1a62f74f0ee55a5e3b9b1a28262980ba90b1a89f2
 name         = "chainstack"
 url_template = "wss://polygon-mainnet.core.chainstack.com/${CHAINSTACK_KEY}"
 
-[[nodes]]                        # -> node_2  (keyless public endpoint, no ${...})
-name         = "publicnode"
-url_template = "wss://polygon-bor-rpc.publicnode.com"
+[[nodes]]                        # -> node_2  
+name         = "infura"
+url_template = "wss://polygon-mainnet.infura.io/ws/v3/${INFURA_KEY}"
 
 [[nodes]]                        # -> node_3
 name         = "drpc"
