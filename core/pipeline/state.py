@@ -63,7 +63,8 @@ class RunState:
     counters: Counters
     shutdown_event: asyncio.Event  # set by SIGINT/SIGTERM or a disconnect; runner tears down
     start_recording: asyncio.Event # opened once start_ref is captured; listeners begin together
-    start_ref_ns: int | None = None  # raw monotonic clock at gate-open; set by the runner
+    start_ref_ns: int | None = None    # raw monotonic clock at gate-open; set by the runner
+    run_started_utc: str | None = None  # wall-clock (ISO-8601) at gate-open; for parquet metadata
 
     @classmethod
     def create(cls) -> "RunState":
@@ -76,4 +77,5 @@ class RunState:
             shutdown_event=asyncio.Event(),
             start_recording=asyncio.Event(),
             start_ref_ns=None,
+            run_started_utc=None,
         )
