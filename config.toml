@@ -15,7 +15,7 @@ timeout_seconds          = 10    # promote regardless after this long since the 
 scanner_interval_seconds = 10    # how often the timeout scanner sweeps the in-memory dict
 
 [writer]
-batch_size = 1000                # rows accumulated before each parquet row-group write (N)
+batch_size = 250                # rows accumulated before each parquet row-group write (N)
 
 [preflight]
 ack_timeout_seconds = 10         # per-node wait for a subscription ack at startup; no retries
