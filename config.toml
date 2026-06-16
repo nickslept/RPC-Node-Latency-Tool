@@ -48,7 +48,7 @@ url_template = "wss://polygon-bor-rpc.publicnode.com"
 
 [[nodes]]                        # -> node_3
 name         = "drpc"
-url_template = "wss://polygon.drpc.org?dkey=${DRPC_KEY}"
+url_template = "wss://lb.drpc.live/polygon/${DRPC_KEY}"
 
 [[nodes]]                        # -> node_4
 name         = "quicknode"
