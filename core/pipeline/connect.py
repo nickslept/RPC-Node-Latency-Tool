@@ -30,7 +30,7 @@ import json
 from dataclasses import dataclass
 from typing import Awaitable, Callable, Protocol
 
-from .config import Config, ConnectionConfig, FilterConfig, NodeConfig
+from ..config import Config, ConnectionConfig, FilterConfig, NodeConfig
 
 
 # --- Connection abstraction (so tests can inject a fake transport) ---------
