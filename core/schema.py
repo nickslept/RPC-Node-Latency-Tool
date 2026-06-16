@@ -71,14 +71,6 @@ SCHEMA: pa.Schema = pa.schema(
 )
 
 
-def empty_table() -> pa.Table:
-    """An empty table conforming to SCHEMA.
-
-    Useful for edge cases (e.g. a run that produced zero rows) and for tests.
-    """
-    return SCHEMA.empty_table()
-
-
 # --- Per-run parquet file metadata ----------------------------------------
 #
 # Provenance is stamped into the parquet footer at writer-open time. The values
