@@ -1,4 +1,4 @@
-# --- Secrets: never commit ---
+# --- Secrets ---
 .env
 
 # --- Run data: ignore contents, keep the folder skeleton ---
