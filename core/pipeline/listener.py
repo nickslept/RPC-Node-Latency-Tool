@@ -93,8 +93,6 @@ async def run_listener(
     websocket,
     raw_queue: asyncio.Queue,
     start_recording: asyncio.Event,
-    *,
-    drain_backlog: bool = True,
 ) -> ListenerExit | None:
     """Run one node's listener until the connection closes or it is cancelled.
 
@@ -105,8 +103,7 @@ async def run_listener(
     shutdown (which is the normal stop path).
     """
     await start_recording.wait()
-    if drain_backlog:
-        await _discard_pregate_backlog(websocket)
+    await _discard_pregate_backlog(websocket)
 
     # Bind to locals once: no attribute lookups in the hot path between a
     # message surfacing and its timestamp being taken.
