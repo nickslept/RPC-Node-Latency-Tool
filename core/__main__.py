@@ -1,5 +1,3 @@
-"""Entry point for `python -m core`."""
-
 import sys
 
 from .cli import main
