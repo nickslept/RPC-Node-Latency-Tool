@@ -14,16 +14,12 @@ dependencies = [
     "python-dotenv>=1.0",
 ]
 
-# Installed with: pip install -e ".[dev]"
-[project.optional-dependencies]
-dev = ["pytest>=8"]
-
 # Lets you run `rpc-latency ingest` after `pip install -e .`
 # (equivalent to `python -m core ingest`).
 [project.scripts]
 rpc-latency = "core.cli:main"
 
-# Package the `core` package and its subpackages; ignore tests/ and scripts/.
+# Package the `core` package and its subpackages
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["core*"]
