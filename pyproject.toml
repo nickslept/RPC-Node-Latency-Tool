@@ -5,19 +5,19 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "rpc-node-latency-tool"
 version = "0.1.0"
-description = "Compare RPC node providers by per-trade arrival latency on Polymarket trades."
+description = "Compare RPC node providers by same-trade arrival latency for Polymarket trades."
 readme = "README.md"
-requires-python = ">=3.11"   # tomllib (stdlib) is 3.11+
+requires-python = ">=3.11"   
 dependencies = [
     "websockets>=12",
     "pyarrow>=14",
     "python-dotenv>=1.0",
 ]
 
-# Lets you run `rpc-latency ingest` after `pip install -e .`
+# Lets you run `latency-data ingest` after `pip install -e .`
 # (equivalent to `python -m core ingest`).
 [project.scripts]
-rpc-latency = "core.cli:main"
+latency-data = "core.cli:main"
 
 # Package the `core` package and its subpackages
 [tool.setuptools.packages.find]
