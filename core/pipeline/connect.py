@@ -28,37 +28,10 @@ from __future__ import annotations
 import asyncio
 import json
 from dataclasses import dataclass
-from typing import Awaitable, Callable, Protocol
+
+from websockets.asyncio.client import ClientConnection, connect
 
 from ..config import Config, ConnectionConfig, FilterConfig, NodeConfig
-
-
-# --- Connection abstraction (so tests can inject a fake transport) ---------
-
-
-class _WebSocketLike(Protocol):
-    """The minimal surface connect.py needs from a websocket connection."""
-
-    async def send(self, data: str) -> None: ...
-    async def recv(self) -> str | bytes: ...
-    async def close(self) -> None: ...
-
-
-# A connector opens one connection. Real use binds this to the websockets
-# library; tests pass a fake. It returns an awaitable resolving to a connection.
-Connector = Callable[..., Awaitable[_WebSocketLike]]
-
-
-def _default_connector(url: str, *, ping_interval: float, ping_timeout: float):
-    """Real connector, bound to the websockets asyncio client.
-
-    The keepalive ping settings are applied here, at construction, because the
-    connection object is created here. Pings are control frames and never
-    surface from ``recv()``, so they never touch trade timestamping.
-    """
-    from websockets.asyncio.client import connect
-
-    return connect(url, ping_interval=ping_interval, ping_timeout=ping_timeout)
 
 
 # --- Result and error types ------------------------------------------------
@@ -69,7 +42,7 @@ class NodeConnection:
     """A live, subscribed connection, ready to be handed to a listener."""
 
     node: NodeConfig
-    websocket: _WebSocketLike
+    websocket: ClientConnection
     subscription_id: str
 
 
@@ -164,14 +137,14 @@ def format_result(node: NodeConfig, result: NodeConnection | ConnectError) -> st
 # --- Per-node connect (I/O) ------------------------------------------------
 
 
-async def _safe_close(ws: _WebSocketLike) -> None:
+async def _safe_close(ws: ClientConnection) -> None:
     try:
         await ws.close()
     except Exception:
         pass  # best-effort; we are already tearing down or aborting
 
 
-async def _await_ack(ws: _WebSocketLike, node: NodeConfig, request_id: int) -> str:
+async def _await_ack(ws: ClientConnection, node: NodeConfig, request_id: int) -> str:
     """Read messages until the subscription ack arrives; raise on RPC error.
 
     Bounded externally by the ack timeout (see connect_node). Skipping non-ack
@@ -193,9 +166,8 @@ async def _connect_and_subscribe(
     node: NodeConfig,
     filter_cfg: FilterConfig,
     conn_cfg: ConnectionConfig,
-    connector: Connector,
 ) -> NodeConnection:
-    ws = await connector(
+    ws = await connect(
         node.url,
         ping_interval=conn_cfg.ping_interval_seconds,
         ping_timeout=conn_cfg.ping_timeout_seconds,
@@ -217,8 +189,6 @@ async def connect_node(
     filter_cfg: FilterConfig,
     conn_cfg: ConnectionConfig,
     ack_timeout: float,
-    *,
-    connector: Connector = _default_connector,
 ) -> NodeConnection:
     """Connect and subscribe one node within ``ack_timeout`` seconds.
 
@@ -228,7 +198,7 @@ async def connect_node(
     """
     try:
         return await asyncio.wait_for(
-            _connect_and_subscribe(node, filter_cfg, conn_cfg, connector),
+            _connect_and_subscribe(node, filter_cfg, conn_cfg),
             timeout=ack_timeout,
         )
     except asyncio.TimeoutError:
@@ -243,11 +213,7 @@ async def connect_node(
 # --- The gate --------------------------------------------------------------
 
 
-async def open_all(
-    config: Config,
-    *,
-    connector: Connector = _default_connector,
-) -> list[NodeConnection]:
+async def open_all(config: Config) -> list[NodeConnection]:
     """Concurrently connect+subscribe all nodes; all-ack-or-abort.
 
     Prints one status line per node in node order. On success returns the live
@@ -261,7 +227,6 @@ async def open_all(
                 config.filter,
                 config.connection,
                 config.preflight.ack_timeout_seconds,
-                connector=connector,
             )
             for node in config.nodes
         ),
