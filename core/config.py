@@ -1,23 +1,3 @@
-"""Configuration loading and validation for the RPC Node Latency Comparison Tool.
-
-This module is the single source of truth for every tunable parameter and -- the
-load-bearing part -- for the node -> column mapping. The ordered ``[[nodes]]``
-list in ``config.toml`` assigns node_1, node_2, ... strictly by position. Both
-the pipeline (which writes those columns) and the analysis stage (which labels
-charts) read that same mapping from here, which is what keeps a statement like
-"node_2 is always PublicNode" true across the entire tool and across runs.
-
-Secrets never live in ``config.toml``. URL templates reference environment
-variables as ``${VAR}``; the real values come from a ``.env`` file (loaded here)
-or the ambient environment, and are interpolated at load time. ``config.toml``
-is therefore safe to commit; ``.env`` is not. A template with no ``${...}`` (for
-a keyless provider such as PublicNode) passes through unchanged.
-
-Loading fails fast and loud: a missing secret, the wrong number of nodes, or an
-out-of-range parameter raises :class:`ConfigError` with a message that says
-exactly what to fix, rather than producing a subtly-wrong run.
-"""
-
 from __future__ import annotations
 
 import os
