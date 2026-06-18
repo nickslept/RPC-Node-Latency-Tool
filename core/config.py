@@ -112,10 +112,10 @@ class Config:
     filter: FilterConfig
 
 
-# --- Defaults for the numeric tunables -------------------------------------
-# These have safe, agreed defaults, so their config sections are optional. The
-# things with no safe default -- the node list and the contract filter -- are
-# required and raise if absent.
+# --- Defaults ---
+# These are the default settings for MOST configurations. 
+# The TOML file will override these IF the user provides other values.
+# Some settings have no safe defaults and must be provided by the user (e.g. contract addresses).
 
 _DEFAULTS: dict[str, dict[str, object]] = {
     "completion": {
@@ -123,7 +123,7 @@ _DEFAULTS: dict[str, dict[str, object]] = {
         "timeout_seconds": 10.0,
         "scanner_interval_seconds": 10.0,
     },
-    "writer": {"batch_size": 1000},
+    "writer": {"batch_size": 250},
     "preflight": {"ack_timeout_seconds": 10.0},
     "connection": {
         "ping_interval_seconds": 5.0,
