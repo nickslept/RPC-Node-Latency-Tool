@@ -21,7 +21,9 @@ class ConfigError(Exception):
 class NodeConfig:
     """A single RPC node provider's configuration.
 
-    ``index`` starts at 1 and ``column`` is the name of the column in the schema (e.g. "node_1_arrival_ns"). 
+    ``index`` goes from 1 to NUM_NODES (inclusive).
+    ``name`` is the name of the node provider.
+    ``column`` is the name of the column in the schema (e.g. "node_1_arrival_ns"). 
     ``url`` is the full websocket url (WITH the API key if the provider requires one).
     """
 
@@ -33,6 +35,12 @@ class NodeConfig:
 
 @dataclass(frozen=True)
 class CompletionConfig:
+    """The configuration for when a single row is considered complete.
+    
+    ``min_nodes_required`` is the minimum number of nodes that must have reported an arrival time for the transaction hash.
+    ``timeout_seconds`` is the maximum time to wait for a row to be complete.
+    ``scanner_interval_seconds`` is the interval at which the scanner checks for the conditions above.
+    """
     min_nodes_required: int
     timeout_seconds: float
     scanner_interval_seconds: float
@@ -40,16 +48,33 @@ class CompletionConfig:
 
 @dataclass(frozen=True)
 class WriterConfig:
+    """
+    The configuration for the Writer.
+
+    ``batch_size`` is the number of finalized rows the writer accumulates before writing a batch to the output parquet file.
+    """
     batch_size: int
 
 
 @dataclass(frozen=True)
 class PreflightConfig:
+    """
+    The configuration for the checks done before data collection truly begins.
+
+    ``ack_timeout_seconds`` is the maximum time a single node can take to send a subscription acknowledgment before the run is aborted.
+    """
     ack_timeout_seconds: float
 
 
 @dataclass(frozen=True)
 class ConnectionConfig:
+    """
+    The configuration for maintaining and closing connections to the RPC nodes.
+
+    ``ping_interval_seconds`` is the interval at which pings are sent to the nodes.
+    ``ping_timeout_seconds`` is the maximum time to wait for a ping response before considering the connection dead.
+    ``stop_on_disconnect`` is a boolean indicating whether to stop the run if any node disconnects.
+    """
     ping_interval_seconds: float
     ping_timeout_seconds: float
     stop_on_disconnect: bool
@@ -57,12 +82,28 @@ class ConnectionConfig:
 
 @dataclass(frozen=True)
 class FilterConfig:
+    """
+    The configuration for on-chain event filtering.
+
+    ``contracts`` is a tuple of contract addresses (Binary and NegRisk).
+    ``order_filled_topic`` is the topic for OrderFilled events.
+    """
     contracts: tuple[str, ...]
     order_filled_topic: str
 
 
 @dataclass(frozen=True)
 class Config:
+    """
+    The master configuration.
+
+    ``nodes`` is a tuple containing the configurations for each node.
+    ``completion`` is the config for when a single row is considered complete.
+    ``writer`` is the config for the writer.
+    ``preflight`` is the config for the checks done before data collection truly begins.
+    ``connection`` is the config for maintaining and closing connections to the RPC nodes.
+    ``filter`` is the config for on-chain event filtering.
+    """
     nodes: tuple[NodeConfig, ...]
     completion: CompletionConfig
     writer: WriterConfig
