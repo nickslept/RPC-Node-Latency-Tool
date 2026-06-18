@@ -22,7 +22,7 @@ class NodeConfig:
     """A single RPC node provider's configuration.
 
     ``index`` starts at 1 and ``column`` is the name of the column in the schema (e.g. "node_1_arrival_ns"). 
-    ``url`` is the full websocket url (WITH the API key).
+    ``url`` is the full websocket url (WITH the API key if the provider requires one).
     """
 
     index: int
