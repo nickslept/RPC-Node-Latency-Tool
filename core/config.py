@@ -14,17 +14,15 @@ class ConfigError(Exception):
     """Raised for any invalid or incomplete configuration."""
 
 
-# --- Typed config objects --------------------------------------------------
-# Frozen so a loaded config is immutable for the life of a run.
+# --- Immutable config objects ---
 
 
 @dataclass(frozen=True)
 class NodeConfig:
-    """One RPC provider, bound to a positional column slot.
+    """A single RPC node provider's configuration.
 
-    ``index`` is 1-based and ``column`` is the schema column it owns; together
-    they are the canonical provider -> column mapping. ``url`` is the fully
-    resolved websocket endpoint (secrets already interpolated).
+    ``index`` starts at 1 and ``column`` is the name of the column in the schema (e.g. "node_1_arrival_ns"). 
+    ``url`` is the full websocket url (WITH the API key).
     """
 
     index: int
