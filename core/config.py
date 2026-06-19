@@ -160,16 +160,22 @@ def _interpolate(template: str, env: dict[str, str], *, node_name: str) -> str:
     return _VAR_PATTERN.sub(repl, template)
 
 
-# --- Small validation helpers ----------------------------------------------
+# --- Validation Helpers ---
 
 
 def _require(table: dict, key: str, *, where: str) -> object:
+    """
+    Ensures that the given key is present in the table.
+    """
     if key not in table:
         raise ConfigError(f"missing required key '{key}' in [{where}]")
     return table[key]
 
 
 def _positive(value: object, *, name: str) -> float:
+    """
+    Ensures that the given value is a positive number.
+    """
     if not isinstance(value, (int, float)) or isinstance(value, bool) or value <= 0:
         raise ConfigError(f"'{name}' must be a positive number, got {value!r}")
     return value
