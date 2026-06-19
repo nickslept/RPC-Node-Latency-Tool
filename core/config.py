@@ -133,26 +133,27 @@ _DEFAULTS: dict[str, dict[str, object]] = {
 }
 
 
-# --- Secret interpolation --------------------------------------------------
+# --- Secrets/API Key & Subdomain Interpolation ---
 
 _VAR_PATTERN = re.compile(r"\$\{([^}]+)\}")
 
 
 def _interpolate(template: str, env: dict[str, str], *, node_name: str) -> str:
-    """Substitute ``${VAR}`` references in a URL template from ``env``.
+    """Substitutes ``${VAR}`` references in a URL template from ``env``. 
+    
+    ``template`` is the URL string containing ``${VAR}`` placeholders.
+    ``env`` is the mapping of environment variable names to their values.
+    ``node_name`` is the node the template belongs to, used only in error messages.
 
-    A template with no references is returned unchanged (the keyless-provider
-    case). A reference to an unset variable raises :class:`ConfigError` naming
-    both the node and the variable, since that is invariably a missing secret.
+    Returns: The interpolated URL string. In the case of no API keys needed, the template will be returned as-is.
     """
 
     def repl(match: re.Match[str]) -> str:
         var = match.group(1)
         if var not in env or env[var] in (None, ""):
             raise ConfigError(
-                f"node '{node_name}': environment variable '{var}' referenced in "
-                f"its url_template is not set. Add it to your .env (or the "
-                f"environment) -- see .env.example."
+                f"Node '{node_name}' references environment variable '{var}', which is not set. "
+                f"Add it to your .env file. Note: other environment variables may be missing as well, but only the first missing variable will be reported."
             )
         return env[var]
 
