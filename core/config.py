@@ -139,7 +139,7 @@ def _interpolate(template: str, env: dict[str, str], *, node_name: str) -> str:
     return _VAR_PATTERN.sub(repl, template)
 
 
-# --- Validation Helpers ---
+# --- Parser Helpers ---
 
 
 def _require(table: dict, key: str, *, where: str) -> object:
