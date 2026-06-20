@@ -237,36 +237,35 @@ def _parse_filter(raw: dict) -> FilterConfig:
 def _parse_nodes(raw_nodes: object, env: dict[str, str]) -> tuple[NodeConfig, ...]:
     if not isinstance(raw_nodes, list) or not raw_nodes:
         raise ConfigError(
-            "config.toml must define a [[nodes]] array (the ordered list of RPC node providers)"
+            "config.toml must define a [[nodes]] array (an ordered list of RPC node providers)"
         )
     if len(raw_nodes) != NUM_NODES:
         raise ConfigError(
-            f"expected exactly {NUM_NODES} [[nodes]] tables (the schema requires one arrival-time column per node provider) "
-            f"found {len(raw_nodes)} instead"
+            f"expected exactly {NUM_NODES} tables in [[nodes]] in config.toml (the schema requires one arrival-time column per node provider), "
+            f"got {len(raw_nodes)}"
         )
-
     nodes: list[NodeConfig] = []
     seen_names: set[str] = set()
     for position, entry in enumerate(raw_nodes, start=1):
         if not isinstance(entry, dict):
-            raise ConfigError(f"[[nodes]] entry #{position} is malformed")
+            raise ConfigError(f"entry #{position} in [[nodes]] in config.toml must be a table, got {type(entry)}")
         name = _require(entry, "name", where=f"nodes #{position}")
         template = _require(entry, "url_template", where=f"nodes #{position}")
         if not isinstance(name, str) or not name:
-            raise ConfigError(f"[[nodes]] entry #{position}: 'name' must be a string")
+            raise ConfigError(f"'name' for node #{position} in [[nodes]] in config.toml must be a string, got {type(name)}")
         if name in seen_names:
-            raise ConfigError(f"duplicate node name '{name}' in [[nodes]]")
+            raise ConfigError(f"duplicate node name '{name}' in [[nodes]] in config.toml")
         seen_names.add(name)
         if not isinstance(template, str) or not template:
             raise ConfigError(
-                f"node '{name}': 'url_template' must be a non-empty string"
+                f"'url_template' for node '{name}' in config.toml must be a non-empty string"
             )
         url = _interpolate(template, env, node_name=name)
         nodes.append(
             NodeConfig(
                 index=position,
                 name=name,
-                column=arrival_column(position),  # position IS the column mapping
+                column=arrival_column(position),
                 url=url,
             )
         )
