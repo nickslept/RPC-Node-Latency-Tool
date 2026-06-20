@@ -6,6 +6,9 @@ RENAMING:
 
 GENERAL TODO:
 - modify config and pyproject .toml files
+- add to parquet file metadeta which node provider represents which column #. This is to account for when people switch the order of node providers (you don't want to mislabel the node providers in the chart)
 
 UPCOMING FEATURES:
-- implement data cleaning and data analysis tools
+- implement data cleaning tool
+- implement data analysis tool
+    - ensure that charts are labeled based on parquet file metadeta 
