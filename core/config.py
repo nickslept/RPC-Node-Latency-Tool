@@ -169,7 +169,7 @@ def _parse_completion(raw: dict) -> CompletionConfig:
         1 <= min_nodes <= NUM_NODES
     ):
         raise ConfigError(
-            f"[_parse_completion] completion.min_nodes_required must be an integer between 1 and {NUM_NODES}, "
+            f"completion.min_nodes_required must be an integer between 1 and {NUM_NODES}, "
             f"got {min_nodes!r}"
         )
     return CompletionConfig(
@@ -189,7 +189,7 @@ def _parse_writer(raw: dict) -> WriterConfig:
     batch = _require(raw, "batch_size", where="writer")
     if not isinstance(batch, int) or isinstance(batch, bool) or batch <= 0:
         raise ConfigError(
-            f"[_parse_writer] writer.batch_size must be a positive integer, got {batch!r}"
+            f"writer.batch_size must be a positive integer, got {batch!r}"
         )
     return WriterConfig(batch_size=batch)
 
@@ -207,7 +207,7 @@ def _parse_connection(raw: dict) -> ConnectionConfig:
     stop = _require(raw, "stop_on_disconnect", where="connection")
     if not isinstance(stop, bool):
         raise ConfigError(
-            f"[_parse_connection] connection.stop_on_disconnect must be true/false, got {stop!r}"
+            f"connection.stop_on_disconnect must be true/false, got {stop!r}"
         )
     return ConnectionConfig(
         ping_interval_seconds=_positive(
