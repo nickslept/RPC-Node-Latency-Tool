@@ -1,8 +1,11 @@
 FILE-SPECIFIC BUG FIXES:
 - 
 
-GENERAL TODO:
+RENAMING:
 - 
+
+GENERAL TODO:
+- modify config and pyproject .toml files
 
 UPCOMING FEATURES:
 - implement data cleaning and data analysis tools
