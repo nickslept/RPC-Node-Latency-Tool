@@ -1,5 +1,5 @@
-FILE-SPECIFIC BUG FIXES:
-- 
+FILE-SPECIFIC BUG FIXES/TODO:
+- in config.py: ensure that error messages are consistent (e.g. ", got ..." and "in config.toml")
 
 RENAMING:
 - 
