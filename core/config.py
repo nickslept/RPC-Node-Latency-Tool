@@ -176,6 +176,7 @@ def _parse_completion(raw: dict) -> CompletionConfig:
         min_nodes_required=min_nodes,
         timeout_seconds=_positive(
             _require(raw, "timeout_seconds", where="completion"),
+            name="completion.timeout_seconds",
         ),
         scanner_interval_seconds=_positive(
             _require(raw, "scanner_interval_seconds", where="completion"),
