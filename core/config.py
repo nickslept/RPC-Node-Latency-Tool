@@ -194,27 +194,28 @@ def _parse_writer(raw: dict) -> WriterConfig:
 
 
 def _parse_preflight(raw: dict) -> PreflightConfig:
-    merged = {**_DEFAULTS["preflight"], **raw}
     return PreflightConfig(
         ack_timeout_seconds=_positive(
-            merged["ack_timeout_seconds"], name="preflight.ack_timeout_seconds"
+            _require(raw, "ack_timeout_seconds", where="preflight"),
+            name="preflight.ack_timeout_seconds",
         )
     )
 
 
 def _parse_connection(raw: dict) -> ConnectionConfig:
-    merged = {**_DEFAULTS["connection"], **raw}
-    stop = merged["stop_on_disconnect"]
+    stop = _require(raw, "stop_on_disconnect", where="connection")
     if not isinstance(stop, bool):
         raise ConfigError(
-            f"connection.stop_on_disconnect must be true/false, got {stop!r}"
+            f"[_parse_connection] connection.stop_on_disconnect must be true/false, got {stop!r}"
         )
     return ConnectionConfig(
         ping_interval_seconds=_positive(
-            merged["ping_interval_seconds"], name="connection.ping_interval_seconds"
+            _require(raw, "ping_interval_seconds", where="connection"),
+            name="connection.ping_interval_seconds",
         ),
         ping_timeout_seconds=_positive(
-            merged["ping_timeout_seconds"], name="connection.ping_timeout_seconds"
+            _require(raw, "ping_timeout_seconds", where="connection"),
+            name="connection.ping_timeout_seconds",
         ),
         stop_on_disconnect=stop,
     )
