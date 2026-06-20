@@ -169,7 +169,7 @@ def _parse_completion(raw: dict) -> CompletionConfig:
         1 <= min_nodes <= NUM_NODES
     ):
         raise ConfigError(
-            f"completion.min_nodes_required must be an integer between 1 and {NUM_NODES}, "
+            f"[_parse_completion] completion.min_nodes_required must be an integer between 1 and {NUM_NODES}, "
             f"got {min_nodes!r}"
         )
     return CompletionConfig(
@@ -185,11 +185,10 @@ def _parse_completion(raw: dict) -> CompletionConfig:
 
 
 def _parse_writer(raw: dict) -> WriterConfig:
-    merged = {**_DEFAULTS["writer"], **raw}
-    batch = merged["batch_size"]
+    batch = _require(raw, "batch_size", where="writer")
     if not isinstance(batch, int) or isinstance(batch, bool) or batch <= 0:
         raise ConfigError(
-            f"writer.batch_size must be a positive integer, got {batch!r}"
+            f"[_parse_writer] writer.batch_size must be a positive integer, got {batch!r}"
         )
     return WriterConfig(batch_size=batch)
 
