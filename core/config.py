@@ -160,7 +160,7 @@ def _positive(value: object, *, name: str) -> float:
     return value
 
 
-# --- Section parsers -------------------------------------------------------
+# --- config.toml Table Parsers ---
 
 
 def _parse_completion(raw: dict) -> CompletionConfig:
