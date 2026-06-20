@@ -14,7 +14,7 @@ class ConfigError(Exception):
     """Raised for any invalid or incomplete configuration."""
 
 
-# --- Immutable config objects ---
+# --- Immutable Config Dataclasses ---
 
 
 @dataclass(frozen=True)
@@ -237,12 +237,12 @@ def _parse_filter(raw: dict) -> FilterConfig:
 def _parse_nodes(raw_nodes: object, env: dict[str, str]) -> tuple[NodeConfig, ...]:
     if not isinstance(raw_nodes, list) or not raw_nodes:
         raise ConfigError(
-            "config must define a [[nodes]] array (the ordered provider list)"
+            "config.toml must define a [[nodes]] array (the ordered list of RPC node providers)"
         )
     if len(raw_nodes) != NUM_NODES:
         raise ConfigError(
-            f"expected exactly {NUM_NODES} [[nodes]] entries (the schema is fixed "
-            f"at {NUM_NODES} node columns), found {len(raw_nodes)}"
+            f"expected exactly {NUM_NODES} [[nodes]] tables (the schema requires one arrival-time column per node provider) "
+            f"found {len(raw_nodes)} instead"
         )
 
     nodes: list[NodeConfig] = []
