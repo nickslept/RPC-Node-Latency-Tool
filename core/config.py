@@ -112,10 +112,10 @@ class Config:
     filter: FilterConfig
 
 
-# --- Secrets/API Key & Subdomain Interpolation ---
+# --- Parser Helpers ---
+
 
 _VAR_PATTERN = re.compile(r"\$\{([^}]+)\}")
-
 
 def _interpolate(template: str, env: dict[str, str], *, node_name: str) -> str:
     """Substitutes ``${VAR}`` references in a URL template from ``env``. 
@@ -137,9 +137,6 @@ def _interpolate(template: str, env: dict[str, str], *, node_name: str) -> str:
         return env[var]
 
     return _VAR_PATTERN.sub(repl, template)
-
-
-# --- Parser Helpers ---
 
 
 def _require(table: dict, key: str, *, where: str) -> object:
