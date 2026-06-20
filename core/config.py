@@ -164,22 +164,21 @@ def _positive(value: object, *, name: str) -> float:
 
 
 def _parse_completion(raw: dict) -> CompletionConfig:
-    merged = {**_DEFAULTS["completion"], **raw}
-    min_nodes = merged["min_nodes_required"]
+    min_nodes = _require(raw, "min_nodes_required", where="completion")
     if not isinstance(min_nodes, int) or isinstance(min_nodes, bool) or not (
         1 <= min_nodes <= NUM_NODES
     ):
         raise ConfigError(
-            f"completion.min_nodes_required must be an integer in 1..{NUM_NODES}, "
+            f"completion.min_nodes_required must be an integer between 1 and {NUM_NODES}, "
             f"got {min_nodes!r}"
         )
     return CompletionConfig(
         min_nodes_required=min_nodes,
         timeout_seconds=_positive(
-            merged["timeout_seconds"], name="completion.timeout_seconds"
+            _require(raw, "timeout_seconds", where="completion"),
         ),
         scanner_interval_seconds=_positive(
-            merged["scanner_interval_seconds"],
+            _require(raw, "scanner_interval_seconds", where="completion"),
             name="completion.scanner_interval_seconds",
         ),
     )
