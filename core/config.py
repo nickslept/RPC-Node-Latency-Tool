@@ -14,7 +14,7 @@ class ConfigError(Exception):
     """Raised for any invalid or incomplete configuration."""
 
 
-# --- Immutable Config Dataclasses ---
+# --- Config Dataclass Definitions ---
 
 
 @dataclass(frozen=True)
@@ -117,14 +117,14 @@ class Config:
 
 _VAR_PATTERN = re.compile(r"\$\{([^}]+)\}")
 
-def _interpolate(template: str, env: dict[str, str], *, node_name: str) -> str:
+def _substitute(template: str, env: dict[str, str], *, node_name: str) -> str:
     """Substitutes ``${VAR}`` references in a URL template from ``env``. 
     
     ``template`` is the URL string containing ``${VAR}`` placeholders.
     ``env`` is the mapping of environment variable names to their values.
     ``node_name`` is the node the template belongs to, used only in error messages.
 
-    Returns: The interpolated URL string. In the case of no API keys needed, the template will be returned as-is.
+    Returns: The full URL string with all placeholders replaced. In the case of no API keys needed, the template will be returned as-is.
     """
 
     def repl(match: re.Match[str]) -> str:
@@ -132,7 +132,7 @@ def _interpolate(template: str, env: dict[str, str], *, node_name: str) -> str:
         if var not in env or env[var] in (None, ""):
             raise ConfigError(
                 f"Node '{node_name}' references environment variable '{var}', which is not set. "
-                f"Add it to your .env file. Note: other environment variables may be missing as well, but only the first missing variable will be reported."
+                f"Add it to your .env file. Note: other environment variables may be missing as well; missing variables are reported one at a time."
             )
         return env[var]
 
@@ -231,33 +231,33 @@ def _parse_filter(raw: dict) -> FilterConfig:
     return FilterConfig(contracts=tuple(contracts), order_filled_topic=topic)
 
 
-def _parse_nodes(raw_nodes: object, env: dict[str, str]) -> tuple[NodeConfig, ...]:
+def _parse_nodes(raw_nodes: object, env: dict[str, str], config_path: str) -> tuple[NodeConfig, ...]:
     if not isinstance(raw_nodes, list) or not raw_nodes:
         raise ConfigError(
-            "config.toml must define a [[nodes]] array (an ordered list of RPC node providers)"
+            f"{config_path} must define a [[nodes]] array (an ordered list of RPC node providers)"
         )
     if len(raw_nodes) != NUM_NODES:
         raise ConfigError(
-            f"expected exactly {NUM_NODES} tables in [[nodes]] in config.toml (the schema requires one arrival-time column per node provider), "
+            f"expected exactly {NUM_NODES} tables in [[nodes]] (the schema requires one arrival-time column per node provider), "
             f"got {len(raw_nodes)}"
         )
     nodes: list[NodeConfig] = []
     seen_names: set[str] = set()
     for position, entry in enumerate(raw_nodes, start=1):
         if not isinstance(entry, dict):
-            raise ConfigError(f"entry #{position} in [[nodes]] in config.toml must be a table, got {type(entry)}")
+            raise ConfigError(f"entry #{position} in [[nodes]] must be a table, got {type(entry)}")
         name = _require(entry, "name", where=f"nodes #{position}")
         template = _require(entry, "url_template", where=f"nodes #{position}")
         if not isinstance(name, str) or not name:
-            raise ConfigError(f"'name' for node #{position} in [[nodes]] in config.toml must be a string, got {type(name)}")
+            raise ConfigError(f"'name' for node #{position} in [[nodes]] must be a string, got {type(name)}")
         if name in seen_names:
-            raise ConfigError(f"duplicate node name '{name}' in [[nodes]] in config.toml")
+            raise ConfigError(f"duplicate node name '{name}' in [[nodes]]")
         seen_names.add(name)
         if not isinstance(template, str) or not template:
             raise ConfigError(
-                f"'url_template' for node '{name}' in config.toml must be a non-empty string"
+                f"'url_template' for node '{name}' must be a non-empty string"
             )
-        url = _interpolate(template, env, node_name=name)
+        url = _substitute(template, env, node_name=name)
         nodes.append(
             NodeConfig(
                 index=position,
@@ -269,19 +269,16 @@ def _parse_nodes(raw_nodes: object, env: dict[str, str]) -> tuple[NodeConfig, ..
     return tuple(nodes)
 
 
-# --- Public entry point ----------------------------------------------------
+# --- Config Loading ---
 
 
 def load_config(config_path: str, *, env_path: str | None = ".env") -> Config:
-    """Load and fully validate configuration.
+    """Loads and fully validates the user's configuration.
 
-    ``config_path`` (TOML) is required and must exist. ``env_path`` is the
-    secrets file; if it is None or simply absent, loading proceeds using only
-    the ambient environment (useful in CI or when secrets are exported
-    directly). Ambient environment variables take precedence over the .env file,
-    so an exported value can override the file for a single run.
+    ``config_path`` is the path to the TOML configuration file.
+    ``env_path`` is the path to the environment variables file (default is ".env"). Can be None, in which case only the ambient environment is used.
 
-    Raises :class:`ConfigError` on any problem, with a message naming the fix.
+    Returns: A `Config` object.
     """
     if not os.path.exists(config_path):
         raise ConfigError(f"config file not found: {config_path}")
@@ -289,8 +286,7 @@ def load_config(config_path: str, *, env_path: str | None = ".env") -> Config:
     file_env = (
         dotenv_values(env_path) if env_path and os.path.exists(env_path) else {}
     )
-    # Ambient env overrides the .env file (lets you override a single secret
-    # inline without editing the file). None values from dotenv are dropped.
+    # Merges the environment variables from the file and the ambient environment. The ambient environment takes precedence.
     env: dict[str, str] = {
         k: v for k, v in {**file_env, **os.environ}.items() if v is not None
     }
@@ -302,7 +298,7 @@ def load_config(config_path: str, *, env_path: str | None = ".env") -> Config:
         raise ConfigError(f"{config_path} is not valid TOML: {exc}") from exc
 
     return Config(
-        nodes=_parse_nodes(data.get("nodes"), env),
+        nodes=_parse_nodes(data.get("nodes"), env, config_path),
         completion=_parse_completion(data.get("completion", {})),
         writer=_parse_writer(data.get("writer", {})),
         preflight=_parse_preflight(data.get("preflight", {})),
