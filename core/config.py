@@ -1,3 +1,7 @@
+"""
+    Functions for loading and validating the user's configuration.
+"""
+
 from __future__ import annotations
 
 import os
