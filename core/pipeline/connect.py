@@ -46,7 +46,7 @@ class PreflightError(Exception):
 # --- Helpers ---
 
 
-def build_subscribe_request(filter_cfg: FilterConfig, request_id: int = 1) -> dict:
+def _build_sub_request(filter_cfg: FilterConfig, request_id: int = 1) -> dict:
     """Builds the eth_subscribe() JSON-RPC request.
 
     Returns: A dictionary representing the JSON-RPC request.
@@ -65,7 +65,7 @@ def build_subscribe_request(filter_cfg: FilterConfig, request_id: int = 1) -> di
     }
 
 
-def classify_message(raw: str | bytes, request_id: int) -> tuple[str, str | None]:
+def _classify_message(raw: str | bytes, request_id: int) -> tuple[str, str | None]:
     """Classifies a message received when waiting for the subscription ack.
 
     Returns one of the following:
@@ -91,40 +91,34 @@ def classify_message(raw: str | bytes, request_id: int) -> tuple[str, str | None
     return ("other", None)
 
 
-def format_result(node: NodeConfig, result: NodeConnection | ConnectError) -> str:
-    """The one-line pre-flight status string for a node (printed in node order)."""
+def _format_result(node: NodeConfig, result: NodeConnection | ConnectError) -> str:
+    """Formats the result of a node connection attempt, and returns a string to be printed into the console."""
     if isinstance(result, NodeConnection):
         return f"[SUBSCRIBED] node_{node.index} ({node.name})"
     reason = result.reason if isinstance(result, ConnectError) else repr(result)
     return f"[ERROR] node_{node.index} ({node.name}) FAILED: {reason}"
 
 
-# --- Per-node connect (I/O) ------------------------------------------------
-
-
 async def _safe_close(ws: ClientConnection) -> None:
     try:
         await ws.close()
     except Exception:
-        pass  # best-effort; we are already tearing down or aborting
+        pass
 
 
 async def _await_ack(ws: ClientConnection, node: NodeConfig, request_id: int) -> str:
-    """Read messages until the subscription ack arrives; raise on RPC error.
+    """Reads messages until the subscription ack arrives, raising a ConnectError if an error message is received.
 
-    Bounded externally by the ack timeout (see connect_node). Skipping non-ack
-    messages is safe: a pre-ack log notification is pre-gate data we discard
-    anyway.
+    Bounded by the ack timeout (see connect_node()).
     """
     while True:
         raw = await ws.recv()
-        kind, payload = classify_message(raw, request_id)
+        kind, payload = _classify_message(raw, request_id)
         if kind == "ack":
             assert payload is not None
             return payload
         if kind == "error":
-            raise ConnectError(node, payload or "subscribe error")
-        # kind == "other": skip and keep waiting
+            raise ConnectError(node, payload or "subscription error")
 
 
 async def _connect_and_subscribe(
@@ -140,7 +134,7 @@ async def _connect_and_subscribe(
     # From here on, any failure (including cancellation when the ack timeout
     # fires) must close the socket so we never leak a half-open connection.
     try:
-        request = build_subscribe_request(filter_cfg)
+        request = _build_sub_request(filter_cfg)
         await ws.send(json.dumps(request))
         sub_id = await _await_ack(ws, node, request["id"])
         return NodeConnection(node=node, websocket=ws, subscription_id=sub_id)
@@ -202,13 +196,13 @@ async def open_all(config: Config) -> list[NodeConnection]:
     failures: list[ConnectError] = []
     for node, result in zip(config.nodes, results):
         if isinstance(result, NodeConnection):
-            print(format_result(node, result))
+            print(_format_result(node, result))
             connections.append(result)
         else:
             err = result if isinstance(result, ConnectError) else ConnectError(
                 node, f"{type(result).__name__}: {result}"
             )
-            print(format_result(node, err))
+            print(_format_result(node, err))
             failures.append(err)
 
     if failures:
