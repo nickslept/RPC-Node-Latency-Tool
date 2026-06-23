@@ -1,28 +1,3 @@
-"""WebSocket connect + subscribe, and the synchronized-start pre-flight gate.
-
-This module owns the first network contact. Its job is to bring all five nodes
-to the "connected and subscribed" state and hand back the live connections --
-and *only* that. It does not read trades; the listeners (Stage 3) do, and they
-do not begin until the runner opens the gate. This separation is what enforces
-the fairness requirement from the design: no node starts being recorded until
-every node is subscribed, so a fast node cannot bank an early advantage.
-
-Pre-flight policy (decided earlier):
-  * One attempt per node, no retries. If it doesn't work, the user re-runs.
-  * Each attempt is bounded by a single ack timeout (connect + subscribe + ack).
-  * All five attempt concurrently, so total pre-flight time is bounded by the
-    slowest node, not the sum.
-  * Strict: if ANY node fails, abort the whole run -- a five-column schema with
-    a permanently-null column is worse than no run. But let every node finish
-    and report its status first, so one launch diagnoses all failures at once.
-  * Cleanup: on abort, the connections that DID succeed are closed, never leaked.
-
-Only the subscription ack is checked here. Whether log notifications actually
-flow is a Stage 3 concern. A node may begin sending logs the instant it acks;
-any such pre-gate message is harmless and is discarded (here, by being skipped
-while waiting for the ack; later, by the listener's not-yet-recording flag).
-"""
-
 from __future__ import annotations
 
 import asyncio
@@ -34,7 +9,7 @@ from websockets.asyncio.client import ClientConnection, connect
 from ..config import Config, ConnectionConfig, FilterConfig, NodeConfig
 
 
-# --- Result and error types ------------------------------------------------
+# --- Connection Definitions ---
 
 
 @dataclass
