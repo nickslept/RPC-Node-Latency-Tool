@@ -47,7 +47,7 @@ class PreflightError(Exception):
 
 
 def _build_sub_request(filter_cfg: FilterConfig, request_id: int = 1) -> dict:
-    """Builds the eth_subscribe() JSON-RPC request.
+    """Builds the ``eth_subscribe()`` JSON-RPC request.
 
     Returns: A dictionary representing the JSON-RPC request.
     """
@@ -113,7 +113,7 @@ async def _await_ack(
     ) -> str:
     """Reads messages until the subscription ack arrives. Raises a ConnectError if an error message is received.
 
-    Externally bounded by the ack timeout (see connect_node()).
+    Externally bounded by the ack timeout (see ``connect_node()``).
     """
     while True:
         raw = await ws.recv()
@@ -130,9 +130,9 @@ async def _connect_and_subscribe(
     filter_cfg: FilterConfig,
     conn_cfg: ConnectionConfig,
 ) -> NodeConnection:
-    """Connects to a node and subscribes to a filter.
+    """Attempts to connect to a node and subscribe to a filter.
     
-    Returns a NodeConnection object on success, or raises a ConnectError (in _await_ack()) on failure.
+    Returns a NodeConnection object on success, or raises a ConnectError (in ``_await_ack()``) on failure.
     Also ensures that the connection is closed on ANY exception.
     """
     ws = await connect(
@@ -156,11 +156,10 @@ async def connect_node(
     conn_cfg: ConnectionConfig,
     ack_timeout: float,
 ) -> NodeConnection:
-    """Connect and subscribe one node within ``ack_timeout`` seconds.
+    """
+    Wraps/bounds ``_connect_and_subscribe()`` with a timeout.
 
-    Always raises ConnectError on any failure (timeout, connection refused, bad
-    key, rejected filter), with a short human-readable reason -- never a raw
-    library exception -- so the pre-flight output is uniform.
+    Raises ConnectError on any failure (timeout, connection refused, bad key, rejected filter, etc) with a reason given.
     """
     try:
         return await asyncio.wait_for(
@@ -171,7 +170,7 @@ async def connect_node(
         raise ConnectError(node, "timeout") from None
     except ConnectError:
         raise
-    except Exception as exc:  # connection refused, TLS error, bad handshake, ...
+    except Exception as exc: #wraps all other exceptions into a ConnectError
         reason = f"{type(exc).__name__}: {exc}".strip().rstrip(":")
         raise ConnectError(node, reason) from exc
 
