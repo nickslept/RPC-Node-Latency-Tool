@@ -125,7 +125,7 @@ async def _await_ack(
             raise ConnectError(node, payload or "subscription error")
 
 
-async def _connect_and_subscribe(
+async def _subscribe(
     node: NodeConfig,
     filter_cfg: FilterConfig,
     conn_cfg: ConnectionConfig,
@@ -157,13 +157,13 @@ async def connect_node(
     ack_timeout: float,
 ) -> NodeConnection:
     """
-    Wraps/bounds ``_connect_and_subscribe()`` with a timeout.
+    Wraps/bounds ``_subscribe()`` with a timeout.
 
     Raises ConnectError on any failure (timeout, connection refused, bad key, rejected filter, etc) with a reason given.
     """
     try:
         return await asyncio.wait_for(
-            _connect_and_subscribe(node, filter_cfg, conn_cfg),
+            _subscribe(node, filter_cfg, conn_cfg),
             timeout=ack_timeout,
         )
     except asyncio.TimeoutError:
@@ -175,15 +175,22 @@ async def connect_node(
         raise ConnectError(node, reason) from exc
 
 
-# --- The gate --------------------------------------------------------------
+# --- Connection Utilities ---
 
+async def close_all(connections: list[NodeConnection]) -> None:
+    """Safely closes every connection on forced shutdown (successful run stopped by Ctrl+C) or after failure."""
+    await asyncio.gather(
+        *(_safe_close(c.websocket) for c in connections),
+        return_exceptions=True,
+    )
 
 async def open_all(config: Config) -> list[NodeConnection]:
-    """Concurrently connect+subscribe all nodes; all-ack-or-abort.
+    """Concurrently attempts to connect to all the nodes and subscribe to the filter in the config.
+    
+    Prints one line per node showing the connection status.
+    Closes any successful connections on failure.
 
-    Prints one status line per node in node order. On success returns the live
-    connections (caller owns closing them). On any failure, closes the
-    successful connections and raises PreflightError.
+    Returns: A list of live NodeConnection objects on success. Raises PreflightError on any failure.
     """
     results = await asyncio.gather(
         *(
@@ -195,7 +202,7 @@ async def open_all(config: Config) -> list[NodeConnection]:
             )
             for node in config.nodes
         ),
-        return_exceptions=True,  # do NOT cancel siblings; let every node report
+        return_exceptions=True,  # lets all nodes attempt to connect (useful for debugging)
     )
 
     connections: list[NodeConnection] = []
@@ -207,23 +214,12 @@ async def open_all(config: Config) -> list[NodeConnection]:
         else:
             err = result if isinstance(result, ConnectError) else ConnectError(
                 node, f"{type(result).__name__}: {result}"
-            )
+            ) # wraps all other exceptions into a ConnectError in case of a bug in connect_node() to keep the printed output consistent
             print(_format_result(node, err))
             failures.append(err)
 
     if failures:
-        await asyncio.gather(
-            *(_safe_close(c.websocket) for c in connections),
-            return_exceptions=True,
-        )
+        await close_all(connections)
         raise PreflightError(failures)
 
     return connections
-
-
-async def close_all(connections: list[NodeConnection]) -> None:
-    """Close every connection (used on shutdown and on post-success abort)."""
-    await asyncio.gather(
-        *(_safe_close(c.websocket) for c in connections),
-        return_exceptions=True,
-    )
