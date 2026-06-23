@@ -43,15 +43,13 @@ class PreflightError(Exception):
         )
 
 
-# --- Pure helpers (no I/O; unit-tested directly) ---------------------------
+# --- Helpers ---
 
 
 def build_subscribe_request(filter_cfg: FilterConfig, request_id: int = 1) -> dict:
-    """Build the eth_subscribe('logs', ...) JSON-RPC request.
+    """Builds the eth_subscribe() JSON-RPC request.
 
-    A single subscription covers both exchange contracts (address array) and the
-    OrderFilled event (topics[0]); this keeps each node to one recv() stream,
-    which the lean-listener design depends on.
+    Returns: A dictionary representing the JSON-RPC request.
     """
     return {
         "jsonrpc": "2.0",
@@ -68,36 +66,28 @@ def build_subscribe_request(filter_cfg: FilterConfig, request_id: int = 1) -> di
 
 
 def classify_message(raw: str | bytes, request_id: int) -> tuple[str, str | None]:
-    """Classify a message received while awaiting the subscription ack.
+    """Classifies a message received when waiting for the subscription ack.
 
-    Returns one of:
-      ("ack", subscription_id)  -- the response to our request; success
-      ("error", reason)         -- an RPC error response, or a malformed message
-      ("other", None)           -- some other message (e.g. an early log
-                                   notification); skip it and keep waiting
-
-    Pure: no node context, so the caller turns ("error", reason) into a
-    ConnectError. The ack is matched by request id, never by position, so an
-    early notification arriving before the ack does not get mistaken for it.
+    Returns one of the following:
+        ("ack", subscription_id)     the response to our request; success
+        ("error", reason)            an RPC error response, or a malformed message
+        ("other", None)              some other message
     """
     try:
         msg = json.loads(raw)
     except (json.JSONDecodeError, TypeError, ValueError):
-        return ("error", "non-JSON response to subscribe request")
+        return ("error", "raw isn't a valid JSON")
     if not isinstance(msg, dict):
-        return ("error", "unexpected subscribe response shape")
-
+        return ("error", "dict wasn't received")
     if msg.get("id") == request_id:
         if "error" in msg:
             err = msg["error"]
             reason = err.get("message", str(err)) if isinstance(err, dict) else str(err)
-            return ("error", f"subscribe rejected: {reason}")
+            return ("error", f"subscription rejected: {reason}")
         result = msg.get("result")
         if isinstance(result, str):
             return ("ack", result)
-        return ("error", f"malformed subscribe ack (no string result): {msg!r}")
-
-    # Not our response id -> a notification or unrelated control message.
+        return ("error", f"missing 'result' string: {msg!r}")
     return ("other", None)
 
 
