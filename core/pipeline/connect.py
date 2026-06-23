@@ -106,10 +106,14 @@ async def _safe_close(ws: ClientConnection) -> None:
         pass
 
 
-async def _await_ack(ws: ClientConnection, node: NodeConfig, request_id: int) -> str:
-    """Reads messages until the subscription ack arrives, raising a ConnectError if an error message is received.
+async def _await_ack(
+        ws: ClientConnection, 
+        node: NodeConfig, 
+        request_id: int,
+    ) -> str:
+    """Reads messages until the subscription ack arrives. Raises a ConnectError if an error message is received.
 
-    Bounded by the ack timeout (see connect_node()).
+    Externally bounded by the ack timeout (see connect_node()).
     """
     while True:
         raw = await ws.recv()
@@ -126,13 +130,16 @@ async def _connect_and_subscribe(
     filter_cfg: FilterConfig,
     conn_cfg: ConnectionConfig,
 ) -> NodeConnection:
+    """Connects to a node and subscribes to a filter.
+    
+    Returns a NodeConnection object on success, or raises a ConnectError (in _await_ack()) on failure.
+    Also ensures that the connection is closed on ANY exception.
+    """
     ws = await connect(
         node.url,
         ping_interval=conn_cfg.ping_interval_seconds,
         ping_timeout=conn_cfg.ping_timeout_seconds,
     )
-    # From here on, any failure (including cancellation when the ack timeout
-    # fires) must close the socket so we never leak a half-open connection.
     try:
         request = _build_sub_request(filter_cfg)
         await ws.send(json.dumps(request))
