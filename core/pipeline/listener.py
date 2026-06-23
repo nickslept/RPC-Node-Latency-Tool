@@ -8,28 +8,21 @@ from websockets.exceptions import ConnectionClosed
 
 from ..config import NodeConfig
 
-# The item shape carried on raw_queue. The processor is the sole consumer and
-# the sole parser; node_id is the 1-based node index, ts is a RAW
-# time.monotonic_ns() value (the offset-from-start subtraction happens later, at
-# the write edge), and raw is the unparsed JSON-RPC message exactly as received.
+# node_id (indexed starting from 1), timestamp, raw message received by listener
 RawItem = tuple[int, int, "str | bytes"]
 
-
-# After the gate opens, keep discarding buffered frames until none has arrived
-# for this long, then start recording. Polymarket OrderFilled logs arrive in
-# per-block bursts roughly two seconds apart, so a window well under that
-# reliably clears the single pre-gate burst (if any) and then falls quiet long
-# before the next real burst -- it does not eat live trades.
-PREGATE_DRAIN_QUIET_S = 0.05
+# The necessary amount of time a node needs to not send messages for (AFTER recording has started) before messages start to get passed to the raw queue. 
+# OrderFilled logs arrive in a predictable pattern, so this delay ensures no node has a head start.
+PREGATE_DRAIN_QUIET_S = 0.05 #rename
 
 
 @dataclass
 class ListenerExit:
     """Returned when a listener stops because its connection closed mid-run.
 
-    The runner inspects this to drive disconnect logging and the optional
-    stop-on-disconnect behaviour (wired in Stage 7). monotonic_ns is the raw
-    clock value at the moment the close was observed.
+    ``node`` is the node that disconnected.
+    ``monotonic_ns`` is the raw clock value at the moment the disconnect was observed.
+    ``reason`` is the reason for the disconnection.
     """
 
     node: NodeConfig
@@ -37,14 +30,10 @@ class ListenerExit:
     reason: str
 
 
-async def _discard_pregate_backlog(websocket) -> None:
-    """Drain and discard frames buffered before the recording gate opened.
+async def _discard_until_quiet(websocket) -> None:
+    """Waits until no message is received for ``PREGATE_DRAIN_QUIET_S`` seconds, discarding any messages received during that time. 
 
-    Reads until no frame arrives for PREGATE_DRAIN_QUIET_S, then returns.
-    Cancelling a waiting recv() does not consume a message, so no live frame is
-    lost by the timeout; a frame that was already buffered is returned (and
-    discarded) before the timeout can fire. If the socket closes during the
-    drain, we simply stop -- the main loop's next recv() will surface the close.
+    Returns when either the timeout is reached or the connection closes.
     """
     while True:
         try:
@@ -70,7 +59,7 @@ async def run_listener(
     shutdown (which is the normal stop path).
     """
     await start_recording.wait()
-    await _discard_pregate_backlog(websocket)
+    await _discard_until_quiet(websocket)
 
     # Bind to locals once: no attribute lookups in the hot path between a
     # message surfacing and its timestamp being taken.
