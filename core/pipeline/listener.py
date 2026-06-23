@@ -1,36 +1,3 @@
-"""The lean listener coroutine -- the only timing-critical code in the pipeline.
-
-Five of these run concurrently, one per node. Each does exactly three things in
-its hot loop and nothing else:
-
-    1. raw = await websocket.recv()
-    2. ts  = time.monotonic_ns()     <- first statement after recv, always
-    3. raw_queue.put_nowait((node_id, ts, raw))
-
-It never parses JSON, never touches the in-memory dict, never checks completion,
-never interacts with the write queue. The timestamp is captured the instant a
-message surfaces and the listener is back waiting on recv() before any
-downstream work happens, so post-capture processing can never skew the measured
-arrival time. Parsing and interpretation are the processor's job (Stage 4);
-the queue carries the raw message string verbatim.
-
-Two correctness details the loop is built around:
-
-* Leanness. Method lookups (recv, put_nowait, monotonic_ns) and the node id are
-  bound to locals once before the loop, so the hot path does no attribute
-  resolution between recv returning and the timestamp being taken.
-
-* The synchronized-start gate. All listeners block on a shared start event and
-  begin together only after the runner has captured start_ref. Before recording
-  begins, each listener discards whatever its connection buffered during the
-  ack window -- frames a faster-acking node saw but the last-to-ack node could
-  not -- so a trade that landed mid-handshake does not get recorded for some
-  nodes and counted "did not report" for others.
-
-The put_nowait can never fail: raw_queue is unbounded by design, so the hot path
-is guaranteed non-blocking with no exception handling of its own.
-"""
-
 from __future__ import annotations
 
 import asyncio
