@@ -9,12 +9,12 @@ from websockets.asyncio.client import ClientConnection, connect
 from ..config import Config, ConnectionConfig, FilterConfig, NodeConfig
 
 
-# --- Connection Definitions ---
+# --- Connection/Exception Definitions ---
 
 
 @dataclass
 class NodeConnection:
-    """A live, subscribed connection, ready to be handed to a listener."""
+    """A successful connection to a node."""
 
     node: NodeConfig
     websocket: ClientConnection
@@ -22,7 +22,7 @@ class NodeConnection:
 
 
 class ConnectError(Exception):
-    """A single node failed to connect/subscribe within its ack timeout."""
+    """A node failed to connect."""
 
     def __init__(self, node: NodeConfig, reason: str):
         self.node = node
@@ -31,7 +31,7 @@ class ConnectError(Exception):
 
 
 class PreflightError(Exception):
-    """One or more nodes failed pre-flight; the run is aborted."""
+    """One or more nodes failed before data collection could begin; the run was aborted."""
 
     def __init__(self, failures: list[ConnectError]):
         self.failures = failures
@@ -39,7 +39,7 @@ class PreflightError(Exception):
             f"node_{f.node.index} {f.node.name}: {f.reason}" for f in failures
         )
         super().__init__(
-            f"pre-flight failed: {len(failures)} node(s) did not subscribe ({summary})"
+            f"Pre-flight failed: {len(failures)} node(s) did not subscribe ({summary})"
         )
 
 
