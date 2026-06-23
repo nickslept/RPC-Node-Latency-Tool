@@ -13,7 +13,7 @@ RawItem = tuple[int, int, "str | bytes"]
 
 # The necessary amount of time a node needs to not send messages for (AFTER recording has started) before messages start to get passed to the raw queue. 
 # OrderFilled logs arrive in a predictable pattern, so this delay ensures no node has a head start.
-PREGATE_DRAIN_QUIET_S = 0.05 #rename
+QUIET_INTERVAL_SECONDS = 0.05
 
 
 @dataclass
@@ -31,13 +31,13 @@ class ListenerExit:
 
 
 async def _discard_until_quiet(websocket) -> None:
-    """Waits until no message is received for ``PREGATE_DRAIN_QUIET_S`` seconds, discarding any messages received during that time. 
+    """Waits until no message is received for ``QUIET_INTERVAL_SECONDS`` seconds, discarding any messages received during that time. 
 
     Returns when either the timeout is reached or the connection closes.
     """
     while True:
         try:
-            await asyncio.wait_for(websocket.recv(), timeout=PREGATE_DRAIN_QUIET_S)
+            await asyncio.wait_for(websocket.recv(), timeout=QUIET_INTERVAL_SECONDS)
         except asyncio.TimeoutError:
             return
         except ConnectionClosed:
