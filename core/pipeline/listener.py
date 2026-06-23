@@ -50,19 +50,17 @@ async def run_listener(
     raw_queue: asyncio.Queue,
     start_recording: asyncio.Event,
 ) -> ListenerExit | None:
-    """Run one node's listener until the connection closes or it is cancelled.
+    """Runs one node's listener until the connection closes or is cancelled.
 
-    Blocks on ``start_recording`` so all listeners begin together, optionally
-    drains the pre-gate backlog, then runs the lean capture loop. Returns a
-    :class:`ListenerExit` if the connection closes mid-run; propagates
-    CancelledError untouched when the runner cancels it during graceful
-    shutdown (which is the normal stop path).
+    Waits for the start recording event, then discards messages for a short period to ensure no node has a head start.
+    Captures timestamps of incoming messages, and moves them to the raw queue.
+
+    Returns a :class:`ListenerExit` if the connection unexpectedly closes mid-run; otherwise, returns None (even if the run is properly ended via Ctrl+C).
     """
     await start_recording.wait()
     await _discard_until_quiet(websocket)
 
-    # Bind to locals once: no attribute lookups in the hot path between a
-    # message surfacing and its timestamp being taken.
+    # optimizes for speed by binding certain attributes to local variables.
     node_id = node.index
     recv = websocket.recv
     monotonic_ns = time.monotonic_ns
@@ -71,12 +69,9 @@ async def run_listener(
     try:
         while True:
             raw = await recv()
-            ts = monotonic_ns()          # FIRST thing after recv -- never reorder
-            put((node_id, ts, raw))      # unbounded queue: cannot block or raise
+            ts = monotonic_ns()
+            put((node_id, ts, raw))
     except ConnectionClosed as exc:
-        # Expected when a node drops. Capture when we noticed and hand it back;
-        # Stage 7 turns this into a disconnect log line and, if configured, a
-        # graceful stop of the whole run.
         return ListenerExit(
             node=node,
             monotonic_ns=time.monotonic_ns(),
