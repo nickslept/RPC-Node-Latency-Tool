@@ -7,11 +7,11 @@ from .state import RunState
 
 
 def extract_tx_hash(raw: "str | bytes") -> str | None:
-    """Return the transaction hash from a logs subscription notification.
+    """Extracts the transaction hash from a ``eth_subscribe()`` message.
 
-    Returns None for anything that is not a proper ``eth_subscription`` log
-    notification carrying a string ``transactionHash`` -- those are dropped.
-    Pure and total (never raises), so it is safe to call on every raw frame.
+    Parses the message as JSON to do so.
+
+    Returns the transaction hash as a String, or None if it isn't found/the message doesn't match the expected format.
     """
     try:
         msg = json.loads(raw)
