@@ -12,7 +12,7 @@ from ..config import NodeConfig
 RawItem = tuple[int, int, "str | bytes"]
 
 # The necessary amount of time a node needs to not send messages for (AFTER recording has started) before messages start to get passed to the raw queue. 
-# OrderFilled logs arrive in a predictable pattern, so this delay ensures no node has a head start.
+# eth_subscribe() messages arrive in a predictable pattern, so this delay ensures no node has a head start.
 QUIET_INTERVAL_SECONDS = 0.05
 
 
