@@ -11,21 +11,20 @@ async def run_scanner(
     timeout_seconds: float,
     interval_seconds: float,
 ) -> None:
-    """Sweep ``entries`` every ``interval_seconds``, promoting aged-out entries."""
+    """
+    Checks ``entries`` every ``interval_seconds``, promoting entries whose time between the first reported timestamp and the current time is greater than ``timeout_seconds``.
+    """
     timeout_ns = int(timeout_seconds * 1_000_000_000)
     entries = state.entries
     promote = state.write_queue.put_nowait
 
     while True:
-        # The ONLY await. Everything below is synchronous and atomic w.r.t. the
-        # processor, preserving the lock-free invariant over `entries`.
         await asyncio.sleep(interval_seconds)
-
-        now = time.monotonic_ns()
-        for tx, slots in list(entries.items()):   # snapshot -> safe inline delete
-            earliest = min((s for s in slots if s is not None), default=None)
+        for tx, slots in list(entries.items()):
+            now = time.monotonic_ns()
+            earliest = min((timestamp for timestamp in slots if timestamp is not None), default=None)
             if earliest is None:
-                continue  # cannot occur in practice (entries always have >=1 fill)
+                continue  # shouldn't ever occur but avoids errors (entries always have >=1 arrival timestamp)
             if now - earliest > timeout_ns:
-                promote((tx, slots))   # written with its None slots intact
+                promote((tx, slots))
                 del entries[tx]
