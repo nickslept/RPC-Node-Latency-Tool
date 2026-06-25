@@ -30,44 +30,36 @@ def extract_tx_hash(raw: "str | bytes") -> str | None:
 
 
 async def run_processor(state: RunState, min_nodes_required: int) -> None:
-    """Drain raw_queue forever, filing timestamps and promoting completed txs.
-
-    ``min_nodes_required`` is the threshold trigger (default 5 = wait for all);
-    the timeout scanner handles entries that never reach it. Runs until
-    cancelled by the runner during shutdown.
+    """Fetches and removes messages from the raw queue. Updates ``entries`` dict with the arrival time data for each transaction. Increments the ``reports`` dict for each node.
+    
+    ``RunState`` is the shared state of the pipeline.
+    ``min_nodes_required`` is the minimum number of nodes that must report for a transaction before it is promoted to the write queue.
     """
-    # Bind hot-path references to locals once.
+    
+    # optimizes for speed by binding certain attributes to local variables.
     get = state.raw_queue.get
     promote = state.write_queue.put_nowait
     entries = state.entries
     reports = state.counters.per_node_reports
 
     while True:
-        node_id, timestamp_ns, raw = await get()
+        node_id, timestamp_ns, raw = await get() # gets & removes a raw message from the queue
 
         tx = extract_tx_hash(raw)
         if tx is None:
-            continue  # not a log notification; drop
-
-        # Defensive: the listener only ever emits 1..NUM_NODES, but never let a
-        # bad index crash the sole dict-owner.
-        if not 1 <= node_id <= NUM_NODES:
-            continue
-        slot = node_id - 1
+            continue  # not an eth_subscribe() message
 
         entry = entries.get(tx)
         if entry is None:
             entry = [None] * NUM_NODES
             entries[tx] = entry
-
-        if entry[slot] is None:
-            # First-write-wins: record the genuine first-seen arrival.
+        
+        slot = node_id - 1
+        if entry[slot] is None: # records only the first arrival for each node
             entry[slot] = timestamp_ns
             reports[slot] += 1
-
-            # Threshold check runs ONLY on this real empty->filled transition.
+            # Checks if the minimum number of nodes have reported for this transaction
             filled = NUM_NODES - entry.count(None)
             if filled >= min_nodes_required:
-                promote((tx, entry))   # entry list handed off; not touched again
+                promote((tx, entry))
                 del entries[tx]
-        # else: duplicate log for an already-filled slot -> drop silently.
