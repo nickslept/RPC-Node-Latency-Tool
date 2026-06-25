@@ -11,8 +11,8 @@
 
 [completion]
 min_nodes_required       = 5     # promote a tx once this many distinct nodes report (5 = wait for all)
-timeout_seconds          = 10    # promote regardless after this long since the tx's earliest timestamp
-scanner_interval_seconds = 10    # how often the timeout scanner sweeps the in-memory dict
+timeout_seconds          = 10    # promotes an entry in entries if the time between the current time and the earliest timestamp is greater than this value
+scanner_interval_seconds = 10    # how often the scanner checks the in-memory dict ("entries") for old entries
 
 [writer]
 batch_size = 250                # rows accumulated before each parquet row-group write (N)
