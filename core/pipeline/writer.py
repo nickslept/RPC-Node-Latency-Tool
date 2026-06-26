@@ -1,33 +1,3 @@
-"""The writer coroutine -- the only coroutine that writes parquet.
-
-It drains write_queue, accumulates promoted transactions into a buffer, and
-writes a row group every ``batch_size`` rows into a single held-open
-ParquetWriter. The held-open-writer design was chosen deliberately (accepting
-the hard-crash exposure: anything not flushed and footer-finalized before a
-clean close is unrecoverable), so the single most important guarantee in this
-module is that ``close()`` runs -- it is in a ``finally`` that executes even if
-the final write raises.
-
-Two transformations happen here, both at the write edge and nowhere else:
-
-* Offset subtraction. Slots hold RAW monotonic nanoseconds; the stored columns
-  hold ``arrival - start_ref``. Doing it here keeps the listener hot path free
-  of arithmetic, and it is exact integer subtraction, so cross-node differences
-  are preserved perfectly.
-
-* Provenance. The run's start_ref and wall-clock start are stamped into the
-  parquet file metadata (via the shared schema), so the file is self-describing
-  and raw timestamps can be reconstructed if ever needed.
-
-Lifecycle / shutdown: the runner signals end-of-stream by putting WRITE_SENTINEL
-on write_queue. The writer drains everything ahead of it, then ``finalize()``
-forces a final write of the sub-batch still in the buffer (otherwise up to
-batch_size-1 trades would be silently lost) and closes the file. The
-ParquetWriter is opened lazily on first write, by which point start_ref is set;
-a run that recorded but produced zero rows still emits a valid, empty,
-footer-bearing file so downstream stages can open it.
-"""
-
 from __future__ import annotations
 
 import os
