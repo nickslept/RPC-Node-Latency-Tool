@@ -1,19 +1,3 @@
-"""Durable record of mid-run node disconnects.
-
-When a node drops, the listener returns a ListenerExit and the runner hands it
-here. Each event is appended to a per-run ``.txt`` file (the durable record,
-paired with the run's parquet in data/raw/) and echoed to the console so whoever
-is watching sees it immediately.
-
-Each line records both clocks: wall-clock UTC for human reading, and elapsed
-seconds since the run's start_ref so the event can be lined up against the
-arrival offsets stored in the parquet. A one-time header records the run start,
-which is what makes those elapsed values interpretable. The header is written
-lazily on the first disconnect, so a clean run with no drops leaves no file.
-
-No reconnection is attempted anywhere -- by design. This module only records.
-"""
-
 from __future__ import annotations
 
 import os
