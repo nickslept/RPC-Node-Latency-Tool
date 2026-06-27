@@ -101,16 +101,18 @@ class _ParquetSink:
 
 
     def _progress_line(self) -> str:
+        """
+        Returns a progress update string.
+        """
         state = self.state
-        elapsed_s = (time.monotonic_ns() - state.start_ref_ns) / 1e9
-        reports = " ".join(
+        elapsed_seconds = (time.monotonic_ns() - state.start_ref_ns) / 1e9
+        reports = ", ".join(
             f"node_{i + 1}={n}" for i, n in enumerate(state.counters.per_node_reports)
         )
         return (
-            f"[+{elapsed_s:.1f}s] wrote batch \u2192 "
-            f"{state.counters.trades_written:,} trades total | "
-            f"queued: raw={state.raw_queue.qsize()} write={state.write_queue.qsize()} | "
-            f"reported: {reports}"
+            f"[WRITER UPDATE] Batch wrote successfully. Elapsed time: {elapsed_seconds:.1f}s | Total rows written: {state.counters.trades_written:,} | "
+            f"Queued: raw={state.raw_queue.qsize()} write={state.write_queue.qsize()} | "
+            f"Per-node reports: {reports}"
         )
 
 
