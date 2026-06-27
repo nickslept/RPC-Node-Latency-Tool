@@ -65,11 +65,16 @@ class _ParquetSink:
             table[col_name] = col_data
         return pa.table(table, schema=self._file_schema)
 
+
     def _write_and_report(self, rows: list[WriteItem]) -> None:
+        """
+        Writes a batch of rows to the parquet file, updates the state counter of total trades written, and calls ```_progress_line()``` to print a progress update.
+        """
         self._open_writer()
         self._writer.write_table(self._build_table(rows))
         self.state.counters.trades_written += len(rows)
         print(self._progress_line())
+
 
     def add(self, item: WriteItem) -> None:
         self.buffer.append(item)
