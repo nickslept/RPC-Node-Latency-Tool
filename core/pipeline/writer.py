@@ -25,9 +25,7 @@ class _ParquetSink:
         self._writer: pq.ParquetWriter | None = None
         self._file_schema: pa.Schema | None = None
 
-    # --- helpers ---
-
-    def _open_writer(self) -> None:
+    def _ensure_writer_open(self) -> None:
         """
         Opens the parquet writer (building the file metadata, schema, and output path + keeps the writer open) IF it is not already open.
         """
@@ -45,7 +43,7 @@ class _ParquetSink:
         self._writer = pq.ParquetWriter(self.path, self._file_schema)
 
 
-    def _build_table(self, rows: list[WriteItem]) -> pa.Table:
+    def _rows_to_table(self, rows: list[WriteItem]) -> pa.Table:
         """
         Converts a list of row-based ``WriteItem`` objects into a column-based PyArrow table.
 
@@ -66,23 +64,23 @@ class _ParquetSink:
         return pa.table(table, schema=self._file_schema)
 
 
-    def _write_and_report(self, rows: list[WriteItem]) -> None:
+    def _write_batch(self, rows: list[WriteItem]) -> None:
         """
-        Writes a batch of rows to the parquet file, updates the state counter of total trades written, and calls ```_progress_line()``` to print a progress update.
+        Writes a batch of data to the parquet file, updates the state counter of total trades written, and calls ```_progress_line()``` to print a progress update.
         """
-        self._open_writer()
-        self._writer.write_table(self._build_table(rows))
+        self._ensure_writer_open()
+        self._writer.write_table(self._rows_to_table(rows))
         self.state.counters.trades_written += len(rows)
         print(self._progress_line())
 
 
-    def _add(self, item: WriteItem) -> None:
+    def _add_to_buffer(self, item: WriteItem) -> None:
         """
-        Adds a WriteItem (previously pulled from the queue) to the buffer. If the buffer reaches or exceeds the batch size (limit), it will be written & the buffer will be cleared.
+        Adds a ``WriteItem`` object (previously pulled from the queue) to the buffer. If the buffer reaches or exceeds the batch size (limit), it will be written & the buffer will be cleared.
         """
         self.buffer.append(item)
         if len(self.buffer) >= self.batch_size:
-            self._write_and_report(self.buffer)
+            self._write_batch(self.buffer)
             self.buffer = []
 
 
@@ -92,10 +90,10 @@ class _ParquetSink:
         """
         try:
             if self.buffer:
-                self._write_and_report(self.buffer)
+                self._write_batch(self.buffer)
                 self.buffer = []
             elif self._writer is None and self.state.start_ref_ns is not None: # The run started but no data was written.
-                self._open_writer()
+                self._ensure_writer_open()
         finally:
             if self._writer is not None:
                 self._writer.close()
@@ -130,6 +128,6 @@ async def run_writer(state: RunState, output_path: str, batch_size: int) -> None
             item = await get()
             if item is STOP_WRITER:
                 break
-            sink._add(item)
+            sink._add_to_buffer(item)
     finally:
         sink._flush_remaining_data_and_close()
