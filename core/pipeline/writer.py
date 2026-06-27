@@ -76,7 +76,10 @@ class _ParquetSink:
         print(self._progress_line())
 
 
-    def add(self, item: WriteItem) -> None:
+    def _add(self, item: WriteItem) -> None:
+        """
+        Adds a WriteItem (previously pulled from the queue) to the buffer. If the buffer reaches or exceeds the batch size (limit), it will be written & the buffer will be cleared.
+        """
         self.buffer.append(item)
         if len(self.buffer) >= self.batch_size:
             self._write_and_report(self.buffer)
@@ -128,6 +131,6 @@ async def run_writer(state: RunState, output_path: str, batch_size: int) -> None
             item = await get()
             if item is STOP_WRITER:
                 break
-            sink.add(item)
+            sink._add(item)
     finally:
         sink.finalize()
