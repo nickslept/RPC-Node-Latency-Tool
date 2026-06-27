@@ -85,23 +85,22 @@ class _ParquetSink:
             self._write_and_report(self.buffer)
             self.buffer = []
 
-    # --- shutdown ----------------------------------------------------------
 
-    def finalize(self) -> None:
-        """Flush the final sub-batch and close the file. Close is guaranteed."""
+    def _flush_remaining_data_and_close(self) -> None:
+        """
+        Flushes the remaining data in the buffer and closes the parquet file.
+        """
         try:
             if self.buffer:
-                self._write_and_report(self.buffer)  # forced partial write
+                self._write_and_report(self.buffer)
                 self.buffer = []
-            elif self._writer is None and self.state.start_ref_ns is not None:
-                # Recorded but produced no rows: still emit a valid empty file.
+            elif self._writer is None and self.state.start_ref_ns is not None: # The run started but no data was written.
                 self._open_writer()
         finally:
             if self._writer is not None:
-                self._writer.close()   # finalizes the footer; THE critical line
+                self._writer.close()
                 self._writer = None
 
-    # --- console -----------------------------------------------------------
 
     def _progress_line(self) -> str:
         state = self.state
@@ -133,4 +132,4 @@ async def run_writer(state: RunState, output_path: str, batch_size: int) -> None
                 break
             sink._add(item)
     finally:
-        sink.finalize()
+        sink._flush_remaining_data_and_close()
