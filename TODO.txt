@@ -3,6 +3,7 @@ FILE-SPECIFIC BUG FIXES/TODO:
 
 RENAMING:
 - connect.py --> connections.py
+- core --> src
 
 GENERAL TODO:
 - write better/more indepth file descs for config.py, connect.py, and listener.py
