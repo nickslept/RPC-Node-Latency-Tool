@@ -1,5 +1,6 @@
 FILE-SPECIFIC BUG FIXES/TODO:
 - in config.py: ensure that error messages are consistent (e.g. ", got ..." and "in config.toml")
+- in writer.py consider moving _progress_line() and the time reformatting function to a diff file as that isn't directly related to writing data
 
 RENAMING:
 - connect.py --> connections.py
