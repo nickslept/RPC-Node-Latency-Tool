@@ -10,9 +10,8 @@ import pyarrow.parquet as pq
 from .. import schema
 from .state import RunState, WriteItem
 
-# End-of-stream marker placed on write_queue by the runner at shutdown. A unique
-# object (not None) so it can never be confused with a real WriteItem.
-WRITE_SENTINEL: object = object()
+# Marker placed in the write queue to signal that shutdown has started.
+STOP_WRITER: object = object()
 
 
 def _now_utc_iso() -> str:
@@ -109,7 +108,7 @@ async def run_writer(state: RunState, output_path: str, batch_size: int) -> None
     """Drain write_queue into a held-open parquet file until the sentinel.
 
     The writer is the one coroutine NOT cancelled at shutdown; it exits cleanly
-    when it sees WRITE_SENTINEL. The ``finally`` guarantees the final partial
+    when it sees STOP_WRITER. The ``finally`` guarantees the final partial
     flush and the footer-finalizing close run regardless of how the loop ends.
     """
     sink = _ParquetSink(output_path, state, batch_size)
@@ -117,7 +116,7 @@ async def run_writer(state: RunState, output_path: str, batch_size: int) -> None
     try:
         while True:
             item = await get()
-            if item is WRITE_SENTINEL:
+            if item is STOP_WRITER:
                 break
             sink.add(item)
     finally:

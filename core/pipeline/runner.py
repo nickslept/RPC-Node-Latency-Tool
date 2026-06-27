@@ -20,7 +20,7 @@ Teardown (the agreed policy -- discard recent partials, keep what was scheduled)
   b. Discard the in-memory dict and any unprocessed raw items. Those are the
      most-recent, still-incomplete trades; writing them with Nones would inject
      a fast-node bias at the tail of every run, so they are dropped on purpose.
-  c. Put WRITE_SENTINEL on write_queue and let the writer finish. It drains every
+  c. Put STOP_WRITER on write_queue and let the writer finish. It drains every
      already-promoted ("scheduled to write") row, forces the final sub-batch, and
      finalizes the parquet footer -- the close is guaranteed by the writer's own
      finally.
@@ -46,7 +46,7 @@ from .listener import ListenerExit, run_listener
 from .processor import run_processor
 from .scanner import run_scanner
 from .state import RunState
-from .writer import WRITE_SENTINEL, run_writer
+from .writer import STOP_WRITER, run_writer
 
 
 def _install_signal_handlers(loop: asyncio.AbstractEventLoop, state: RunState) -> None:
@@ -191,7 +191,7 @@ async def run_ingestion(config: Config, output_path: str) -> int:
         state.entries.clear()
 
         # (c) Drain everything already promoted, then let the writer finalize.
-        state.write_queue.put_nowait(WRITE_SENTINEL)
+        state.write_queue.put_nowait(STOP_WRITER)
         await writer_task
     finally:
         # (d) Connections closed last, unconditionally.
