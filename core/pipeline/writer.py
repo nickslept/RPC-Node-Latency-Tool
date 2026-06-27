@@ -118,7 +118,7 @@ class _ParquetSink:
         Returns a progress update string.
         """
         state = self.state
-        elapsed_seconds = int((time.monotonic_ns() - state.start_ref_ns) / 1e9)
+        elapsed_seconds = (time.monotonic_ns() - state.start_ref_ns) // 1_000_000_000
         reports = ", ".join(
             f"node_{i + 1}={n}" for i, n in enumerate(state.counters.per_node_reports)
         )

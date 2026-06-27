@@ -32,7 +32,7 @@ class DisconnectLogger:
         Adds one disconnect event to the log file and prints it to the console.
         """
         self._ensure_header()
-        elapsed_seconds = int((time.monotonic_ns() - self.state.start_ref_ns) / 1e9)
+        elapsed_seconds = (time.monotonic_ns() - self.state.start_ref_ns) // 1_000_000_000
         curr_time = datetime.now(timezone.utc).isoformat()
         node = event.node
 
