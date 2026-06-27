@@ -24,7 +24,11 @@ def _format_readable_time(elapsed_seconds: int) -> str:
     return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
 class _ParquetSink:
-    """Encapsulates the held-open writer, the row buffer, and lifecycle."""
+    """
+    A class containing all the logic for writing the objects in the write queue to a Parquet file (opening the writer, writing batches, and closing the file).
+
+    Also contains logic for progress updates.
+    """
 
     def __init__(self, output_path: str, state: RunState, batch_size: int):
         self.path = output_path
@@ -126,11 +130,9 @@ class _ParquetSink:
 
 
 async def run_writer(state: RunState, output_path: str, batch_size: int) -> None:
-    """Drain write_queue into a held-open parquet file until the sentinel.
+    """Drains ``write_queue`` into a held-open parquet file until the ``STOP_WRITER`` flag is received.
 
-    The writer is the one coroutine NOT cancelled at shutdown; it exits cleanly
-    when it sees STOP_WRITER. The ``finally`` guarantees the final partial
-    flush and the footer-finalizing close run regardless of how the loop ends.
+    Closes the parquet file cleanly when the flag is received.
     """
     sink = _ParquetSink(output_path, state, batch_size)
     get = state.write_queue.get
