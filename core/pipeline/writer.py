@@ -13,6 +13,15 @@ from .state import RunState, WriteItem
 # Object placed in the write queue to signal that shutdown has started. Used like a boolean flag.
 STOP_WRITER: object = object()
 
+def _format_readable_time(elapsed_seconds: int) -> str:
+    """
+    Reformats the elapsed time in seconds as HH:MM:SS.
+
+    Returns: A string in the format HH:MM:SS.
+    """
+    hours, remainder = divmod(elapsed_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
 class _ParquetSink:
     """Encapsulates the held-open writer, the row buffer, and lifecycle."""
@@ -105,12 +114,12 @@ class _ParquetSink:
         Returns a progress update string.
         """
         state = self.state
-        elapsed_seconds = (time.monotonic_ns() - state.start_ref_ns) / 1e9
+        elapsed_seconds = int((time.monotonic_ns() - state.start_ref_ns) / 1e9)
         reports = ", ".join(
             f"node_{i + 1}={n}" for i, n in enumerate(state.counters.per_node_reports)
         )
         return (
-            f"[WRITER UPDATE] Batch wrote successfully. Elapsed time: {elapsed_seconds:.1f}s | Total rows written: {state.counters.trades_written:,} | "
+            f"[WRITER UPDATE] Batch wrote successfully. Elapsed time: {_format_readable_time(elapsed_seconds)} | Total rows written: {state.counters.trades_written:,} | "
             f"Queued: raw={state.raw_queue.qsize()} write={state.write_queue.qsize()} | "
             f"Per-node reports: {reports}"
         )
