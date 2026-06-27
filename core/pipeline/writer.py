@@ -46,17 +46,24 @@ class _ParquetSink:
 
 
     def _build_table(self, rows: list[WriteItem]) -> pa.Table:
-        start_ref = self.state.start_ref_ns  # not None once _open_writer ran
+        """
+        Converts a list of row-based ``WriteItem`` objects into a column-based PyArrow table.
+
+        Returns: A PyArrow table with a ``tx_hash`` column and columns for each node's arrival times.
+        """
+        start_ref = self.state.start_ref_ns
         tx_col: list[str] = []
         node_cols: list[list] = [[] for _ in schema.ARRIVAL_COLUMNS]
+        
         for tx, slots in rows:
             tx_col.append(tx)
-            for i, s in enumerate(slots):
-                node_cols[i].append(None if s is None else s - start_ref)
-        arrays = {schema.TX_HASH_COLUMN: tx_col}
-        for name, col in zip(schema.ARRIVAL_COLUMNS, node_cols):
-            arrays[name] = col
-        return pa.table(arrays, schema=self._file_schema)
+            for node_index, arrival_timestamp in enumerate(slots):
+                node_cols[node_index].append(None if arrival_timestamp is None else arrival_timestamp - start_ref)
+        
+        table = {schema.TX_HASH_COLUMN: tx_col}
+        for col_name, col_data in zip(schema.ARRIVAL_COLUMNS, node_cols):
+            table[col_name] = col_data
+        return pa.table(table, schema=self._file_schema)
 
     def _write_and_report(self, rows: list[WriteItem]) -> None:
         self._open_writer()
