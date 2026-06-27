@@ -10,12 +10,8 @@ import pyarrow.parquet as pq
 from .. import schema
 from .state import RunState, WriteItem
 
-# Marker placed in the write queue to signal that shutdown has started.
+# Object placed in the write queue to signal that shutdown has started. Used like a boolean flag.
 STOP_WRITER: object = object()
-
-
-def _now_utc_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
 
 
 class _ParquetSink:
@@ -29,26 +25,28 @@ class _ParquetSink:
         self._writer: pq.ParquetWriter | None = None
         self._file_schema: pa.Schema | None = None
 
-    # --- writing -----------------------------------------------------------
+    # --- helpers ---
 
-    def _ensure_open(self) -> None:
-        if self._writer is not None:
+    def _open_writer(self) -> None:
+        """
+        Opens the parquet writer (building the file metadata, schema, and output path + keeps the writer open) IF it is not already open.
+        """
+        if self._writer is not None: # already open
             return
-        start_ref = self.state.start_ref_ns
-        if start_ref is None:
-            # Writing before the gate opened would be a logic error; the lazy
-            # open only ever happens after recording (and thus start_ref) began.
-            raise RuntimeError("writer opened before start_ref was set")
-        run_utc = self.state.run_started_utc or _now_utc_iso()
-        meta = schema.build_run_metadata(start_ref, run_utc)
-        # Both the writer schema and every batch table use this exact
-        # metadata-bearing schema, so they are identical and can never mismatch.
+
+        if self.state.start_ref_ns is None:
+            raise RuntimeError("Writer was opened before start_ref was set by the runner.")
+        if self.state.run_started_utc is None:
+            raise RuntimeError("Writer was opened before run_started_utc was set by the runner.")
+        
+        meta = schema.build_run_metadata(self.state.start_ref_ns, self.state.run_started_utc)
         self._file_schema = schema.SCHEMA.with_metadata(meta)
         os.makedirs(os.path.dirname(self.path) or ".", exist_ok=True)
         self._writer = pq.ParquetWriter(self.path, self._file_schema)
 
+
     def _build_table(self, rows: list[WriteItem]) -> pa.Table:
-        start_ref = self.state.start_ref_ns  # not None once _ensure_open ran
+        start_ref = self.state.start_ref_ns  # not None once _open_writer ran
         tx_col: list[str] = []
         node_cols: list[list] = [[] for _ in schema.ARRIVAL_COLUMNS]
         for tx, slots in rows:
@@ -61,7 +59,7 @@ class _ParquetSink:
         return pa.table(arrays, schema=self._file_schema)
 
     def _write_and_report(self, rows: list[WriteItem]) -> None:
-        self._ensure_open()
+        self._open_writer()
         self._writer.write_table(self._build_table(rows))
         self.state.counters.trades_written += len(rows)
         print(self._progress_line())
@@ -82,7 +80,7 @@ class _ParquetSink:
                 self.buffer = []
             elif self._writer is None and self.state.start_ref_ns is not None:
                 # Recorded but produced no rows: still emit a valid empty file.
-                self._ensure_open()
+                self._open_writer()
         finally:
             if self._writer is not None:
                 self._writer.close()   # finalizes the footer; THE critical line
