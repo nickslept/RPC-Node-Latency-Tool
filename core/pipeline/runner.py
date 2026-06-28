@@ -82,25 +82,29 @@ def _make_listener_handler(
 
 
 async def run_ingestion(config: Config, output_path: str) -> int:
-    """Run one ingestion to completion. Returns 0 on success, 1 on pre-flight abort."""
+    """
+    Runs the data ingestion pipeline. 
+    
+    Returns ``0`` on success, and ``1`` on pre-flight abort.
+    """
     state = RunState.create()
     loop = asyncio.get_running_loop()
 
-    # 1. Pre-flight gate. open_all prints per-node status and, on any failure,
-    #    closes the successful sockets before raising.
+    # 1. Concurrently tries to establish a connection to each node.
     try:
         connections = await open_all(config)
     except PreflightError as exc:
-        print(f"\nABORT: {exc}")
+        print(f"[CONNECTION FAILED] Couldn't establish a connection to every node. Reason: {exc}")
         return 1
 
+    # 2. Ensures that a run can be stopped by a signal.
     _install_signal_handlers(loop, state)
 
-    # 2. The synchronized start reference, captured once, shared by all.
+    # 3. Captures the run's start time.
     state.start_ref_ns = time.monotonic_ns()
     state.run_started_utc = datetime.now(timezone.utc).isoformat()
 
-    # 3. Spawn the pipeline. Writer/processor/scanner start idle; listeners wait.
+    # 4. Creates the tasks for the writer, processor, and scanner.
     writer_task = asyncio.create_task(
         run_writer(state, output_path, config.writer.batch_size)
     )
@@ -114,6 +118,8 @@ async def run_ingestion(config: Config, output_path: str) -> int:
             config.completion.scanner_interval_seconds,
         )
     )
+
+    # 5. Sets up each listener with a disconnect logger.
     disconnect_logger = DisconnectLogger(_disconnect_log_path(output_path), state)
     stop_on_disconnect = config.connection.stop_on_disconnect
     listener_tasks = []
@@ -127,30 +133,21 @@ async def run_ingestion(config: Config, output_path: str) -> int:
         listener_tasks.append(task)
 
     try:
-        print(f"recording started ({len(connections)} nodes) -- Ctrl-C to stop")
-        # 4. Open the gate: every listener begins together.
+        print(f"[RECORDING] Attempting to start data collection for {len(connections)} nodes... Press Ctrl+C to stop the run.")
+        
+        # 6. Starts recording (every listener begins together)
         state.start_recording.set()
         await state.shutdown_event.wait()
 
-        # 5. Teardown.
-        print("shutdown requested -- draining scheduled writes and finalizing...")
-
-        # (a) Stop all producers.
+        # 7. Shutdown the pipeline.
         producers = [*listener_tasks, processor_task, scanner_task]
         for task in producers:
             task.cancel()
         await asyncio.gather(*producers, return_exceptions=True)
-        # Disconnects are handled live by the listener done-callbacks; the
-        # cancellations issued just above are ignored by those callbacks.
-
-        # (b) Discard the dict (recent incomplete trades dropped by design).
         state.entries.clear()
-
-        # (c) Drain everything already promoted, then let the writer finalize.
         state.write_queue.put_nowait(STOP_WRITER)
         await writer_task
     finally:
-        # (d) Connections closed last, unconditionally.
         await close_all(connections)
 
     _print_summary(state, output_path)
@@ -158,5 +155,7 @@ async def run_ingestion(config: Config, output_path: str) -> int:
 
 
 def run(config: Config, output_path: str) -> int:
-    """Synchronous entry point (used by the CLI)."""
+    """
+        Entry point (used by the CLI).
+    """
     return asyncio.run(run_ingestion(config, output_path))
