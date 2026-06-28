@@ -41,7 +41,9 @@ def _print_summary(state: RunState, output_path: str) -> None:
 
 
 def _disconnect_log_path(output_path: str) -> str:
-    """The disconnect .txt that pairs with this run's parquet (same stem)."""
+    """
+    Returns the path to the run's disconnect .txt file for the given output path as a string.
+    """
     base, _ext = os.path.splitext(output_path)
     return base + ".disconnects.txt"
 
