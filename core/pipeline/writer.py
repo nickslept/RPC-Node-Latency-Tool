@@ -13,7 +13,7 @@ from .state import RunState, WriteItem
 # Object placed in the write queue to signal that shutdown has started. Used like a boolean flag.
 STOP_WRITER: object = object()
 
-def _format_readable_time(elapsed_seconds: int) -> str:
+def format_readable_time(elapsed_seconds: int) -> str:
     """
     Reformats the elapsed time in seconds as HH:MM:SS.
 
@@ -123,7 +123,7 @@ class _ParquetSink:
             f"node_{i + 1}={n}" for i, n in enumerate(state.counters.per_node_reports)
         )
         return (
-            f"[WRITER UPDATE] Batch wrote successfully. Elapsed time: {_format_readable_time(elapsed_seconds)} | Total rows written: {state.counters.trades_written:,} | "
+            f"[WRITER UPDATE] Batch wrote successfully. Elapsed time: {format_readable_time(elapsed_seconds)} | Total rows written: {state.counters.trades_written:,} | "
             f"Queued: raw={state.raw_queue.qsize()} write={state.write_queue.qsize()} | "
             f"Per-node reports: {reports}"
         )
