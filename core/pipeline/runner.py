@@ -1,35 +1,3 @@
-"""The runner -- orchestrates one ingestion run from pre-flight to clean exit.
-
-It is the only place the pipeline graph is assembled, the only place signals are
-handled, and the only place the shutdown sequence lives. Everything it wires
-together (connect, listeners, processor, scanner, writer) is already an
-independently-trusted unit, so a fault here is a wiring fault, not a logic one.
-
-Lifecycle:
-  1. Pre-flight gate: connect+subscribe all nodes, all-ack-or-abort.
-  2. Capture the synchronized start reference (raw monotonic + wall clock).
-  3. Spawn the pipeline. The writer, processor, and scanner start immediately but
-     idle (their queues are empty); the listeners block on the start gate.
-  4. Open the gate so all listeners begin together, and run until a stop is
-     requested (SIGINT/SIGTERM -> shutdown_event).
-  5. Teardown, in strict flow order.
-
-Teardown (the agreed policy -- discard recent partials, keep what was scheduled):
-  a. Stop all producers (listeners, processor, scanner) by cancellation. Nothing
-     new can enter the dict or be promoted after this.
-  b. Discard the in-memory dict and any unprocessed raw items. Those are the
-     most-recent, still-incomplete trades; writing them with Nones would inject
-     a fast-node bias at the tail of every run, so they are dropped on purpose.
-  c. Put STOP_WRITER on write_queue and let the writer finish. It drains every
-     already-promoted ("scheduled to write") row, forces the final sub-batch, and
-     finalizes the parquet footer -- the close is guaranteed by the writer's own
-     finally.
-  d. Close the connections (last; in this module's finally, so it always runs).
-
-A second Ctrl-C during teardown force-quits: the first signal sets the event and
-removes the handler, so the next signal hits Python's default and kills.
-"""
-
 from __future__ import annotations
 
 import asyncio
