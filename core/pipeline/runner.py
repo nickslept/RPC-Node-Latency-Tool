@@ -22,7 +22,7 @@ def _install_signal_handlers(loop: asyncio.AbstractEventLoop, state: RunState) -
     Installs signal handlers (SIGINT, SIGTERM) to trigger a graceful shutdown.
     """
     def handle(signum, frame):
-        print("[SHUTDOWN] Stopping all processes and flushing data. WARNING: Pressing Ctrl+C again will force-quit and could corrupt the parquet file.")
+        print(f"\n[SHUTDOWN] Stopping all processes and flushing data. WARNING: Pressing Ctrl+C again will force-quit and could corrupt the parquet file.")
         loop.call_soon_threadsafe(state.shutdown_event.set)
         signal.signal(signum, signal.SIG_DFL)
 
