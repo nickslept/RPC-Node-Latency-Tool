@@ -54,30 +54,27 @@ def _make_listener_handler(
     state: RunState,
     stop_on_disconnect: bool,
 ):
-    """Build a done-callback for one listener task.
+    """
+    Builds a callback function that handles the completion (for any reason, such as a disconnect) of a listener task.
 
-    Fires when the task completes. A cancellation (the normal shutdown stop) is
-    ignored. A clean ConnectionClosed surfaces as a returned ListenerExit; an
-    unexpected error surfaces as a raised exception -- both are logged as a
-    disconnect, and, if stop_on_disconnect is set, trigger the same graceful
-    shutdown path as Ctrl-C by setting shutdown_event.
+    Returns a handler function for a listener task.
     """
 
     def handler(task: asyncio.Task) -> None:
         if task.cancelled():
-            return
+            return # not a disconnect, normal shutdown
         exc = task.exception()
         if exc is not None:
             event = ListenerExit(
                 node=node,
                 monotonic_ns=time.monotonic_ns(),
-                reason=f"listener error: {exc!r}",
+                reason=f"Listener error: {exc!r}",
             )
         else:
             event = task.result()
             if event is None:
                 return
-        logger.log(event)
+        logger.log(event) # logs the disconnect in the .txt file
         if stop_on_disconnect and not state.shutdown_event.is_set():
             state.shutdown_event.set()
 
