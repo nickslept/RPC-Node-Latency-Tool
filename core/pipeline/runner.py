@@ -14,7 +14,7 @@ from .listener import ListenerExit, run_listener
 from .processor import run_processor
 from .scanner import run_scanner
 from .state import RunState
-from .writer import STOP_WRITER, run_writer
+from .writer import STOP_WRITER, run_writer, format_readable_time
 
 
 def _install_signal_handlers(loop: asyncio.AbstractEventLoop, state: RunState) -> None:
@@ -22,7 +22,7 @@ def _install_signal_handlers(loop: asyncio.AbstractEventLoop, state: RunState) -
     Installs signal handlers (SIGINT, SIGTERM) to trigger a graceful shutdown.
     """
     def handle(signum, frame):
-        print("[SHUTDOWN] Stopping all processes. WARNING: Pressing Ctrl+C again will force-quit and could corrupt the parquet file.")
+        print("[SHUTDOWN] Stopping all processes and flushing data. WARNING: Pressing Ctrl+C again will force-quit and could corrupt the parquet file.")
         loop.call_soon_threadsafe(state.shutdown_event.set)
         signal.signal(signum, signal.SIG_DFL)
 
@@ -31,14 +31,13 @@ def _install_signal_handlers(loop: asyncio.AbstractEventLoop, state: RunState) -
 
 def _print_summary(state: RunState, output_path: str) -> None:
     total = state.counters.trades_written
-    duration = (
-        (time.monotonic_ns() - state.start_ref_ns) / 1e9 if state.start_ref_ns else 0.0
-    )
-    print(f"\n[summary] {total:,} trades written to {output_path}")
-    print(f"[summary] duration: {duration:.1f}s")
+    duration = (time.monotonic_ns() - state.start_ref_ns) // 1_000_000_000
+    print(f"\n[SUMMARY] {total:,} trades written to {output_path}")
+    print(f"[SUMMARY] Run time: {format_readable_time(duration)}")
     for i, reported in enumerate(state.counters.per_node_reports):
         rate = (reported / total * 100) if total else 0.0
-        print(f"[summary] node_{i + 1}: {reported:,} reported ({rate:.1f}%)")
+        print(f"[SUMMARY] node_{i + 1}: {reported:,} trades reported | Rate: {rate:.1f}%")
+    print("[SUMMARY] Note that the above numbers are the amount of trades REPORTED, not necessarily the amount of trades that were successfully processed & written. The rate is relative to the total number of trades written.")
 
 
 def _disconnect_log_path(output_path: str) -> str:
