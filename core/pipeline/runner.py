@@ -18,26 +18,16 @@ from .writer import STOP_WRITER, run_writer
 
 
 def _install_signal_handlers(loop: asyncio.AbstractEventLoop, state: RunState) -> None:
-    """Route SIGINT/SIGTERM to a one-shot graceful shutdown.
-
-    The first signal sets shutdown_event and removes the handler, so a second
-    signal falls through to the default disposition (force-quit).
     """
-
-    def handle(sig: signal.Signals) -> None:
-        print(f"\n[{sig.name}] stopping gracefully (Ctrl-C again to force-quit)")
-        state.shutdown_event.set()
-        try:
-            loop.remove_signal_handler(sig)
-        except (NotImplementedError, RuntimeError):
-            pass
+    Installs signal handlers (SIGINT, SIGTERM) to trigger a graceful shutdown.
+    """
+    def handle(signum, frame):
+        print("[SHUTDOWN] Stopping all processes. WARNING: Pressing Ctrl+C again will force-quit and could corrupt the parquet file.")
+        loop.call_soon_threadsafe(state.shutdown_event.set)
+        signal.signal(signum, signal.SIG_DFL)
 
     for sig in (signal.SIGINT, signal.SIGTERM):
-        try:
-            loop.add_signal_handler(sig, functools.partial(handle, sig))
-        except NotImplementedError:  # e.g. Windows
-            signal.signal(sig, lambda *_: loop.call_soon_threadsafe(state.shutdown_event.set))
-
+        signal.signal(sig, handle)
 
 def _print_summary(state: RunState, output_path: str) -> None:
     total = state.counters.trades_written
