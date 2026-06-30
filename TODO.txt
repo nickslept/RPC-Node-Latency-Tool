@@ -7,6 +7,8 @@ RENAMING:
 - connect.py --> connections.py
 - core --> src
 - ingest --> collect
+- preflight --> precollection
+- completion --> promotion; complete --> promote
 
 GENERAL TODO:
 - write better/more indepth file descs for config.py, connect.py, and listener.py
