@@ -1,59 +1,48 @@
-# RPC Node Latency Comparison Tool -- configuration.
-#
-# This file is safe to commit: it contains no secrets. API keys are referenced
-# as ${VAR} below and resolved from .env (see .env.example) at load time.
-#
-# The ORDER of the [[nodes]] entries IS the column mapping: the first entry is
-# node_1 (node_1_arrival_ns), the second is node_2, and so on. Reordering these
-# reassigns the columns -- keep the order stable across collection runs and
-# analysis, or your charts will mislabel providers. Exactly five entries are
-# required (the schema is fixed at five node columns).
-
 [completion]
-min_nodes_required       = 5     # promote a tx once this many distinct nodes report (5 = wait for all)
-timeout_seconds          = 10    # promotes an entry in entries if the time between the current time and the earliest timestamp is greater than this value
-scanner_interval_seconds = 10    # how often the scanner checks the in-memory dict ("entries") for old entries
+min_nodes_required       = 5     # promote a transaction into the write queue once this many unique nodes reported it
+timeout_seconds          = 10    # promotes a transaction into the write queue if the earliest recorded timestamp is older than this many seconds
+scanner_interval_seconds = 10    # how often the scanner checks the in-memory dict ("entries") for transactions whose earliest recorded timestamp is older than timeout_seconds
 
 [writer]
-batch_size = 250                # rows accumulated before each parquet row-group write (N)
+batch_size = 250                # amount of rows that need to accumulate before being added to the parquet file
 
 [preflight]
-ack_timeout_seconds = 10         # per-node wait for a subscription ack at startup; no retries
+ack_timeout_seconds = 10         # amount of time (in seconds) each node waits for a subscription ack before data collection (no retries)
 
 [connection]
-ping_interval_seconds = 5        # websocket keepalive ping cadence (liveness only; never timestamped)
-ping_timeout_seconds  = 5        # a silent socket is force-closed after ~interval + timeout
-stop_on_disconnect    = true     # true: any mid-run drop triggers a graceful stop of the whole run
+ping_interval_seconds = 5        # how often the websocket keepalive ping is sent
+ping_timeout_seconds  = 5        # how long to wait for a "pong" response from a node before considering the connection dead and force closing the connection
+stop_on_disconnect    = true     # true = if any node disconnects mid-run, then data collection will safely stop. False = data collection will continue
 
 [filter]
-# Both Polymarket CTF exchanges (binary + NegRisk) and the OrderFilled topic.
-# These are config so the filter is data-driven, not hardcoded.
 contracts = [
     "0xE111180000d2663C0091e4f400237545B87B996B",  # CTF Exchange V2
     "0xe2222d279d744050d28e00520010520000310F59",  # NegRisk CTF Exchange V2
 ]
-order_filled_topic = "0xd543adfd945773f1a62f74f0ee55a5e3b9b1a28262980ba90b1a89f2ea84d8ee"
+order_filled_topic = "0xd543adfd945773f1a62f74f0ee55a5e3b9b1a28262980ba90b1a89f2ea84d8ee" # OrderFilled event topic
 
-# --- Providers, in column order ------------------------------------------
-# url_template host formats below are illustrative; confirm each against your
-# provider dashboard. The template just has to resolve to your real wss URL.
+# --- RPC Node Providers ---
+# Providers are in column order
+# url_template may change in the future; double check your dashboard
+# API keys are added via the .env file
+# **Note:** quicknode has a unique subdomain in addition to an API key
 
-[[nodes]]                        # -> node_1
+[[nodes]]                   # -> node_1
 name         = "chainstack"
 url_template = "wss://polygon-mainnet.core.chainstack.com/${CHAINSTACK_KEY}"
 
-[[nodes]]                        # -> node_2  
+[[nodes]]                   # -> node_2  
 name         = "infura"
 url_template = "wss://polygon-mainnet.infura.io/ws/v3/${INFURA_KEY}"
 
-[[nodes]]                        # -> node_3
+[[nodes]]                   # -> node_3
 name         = "drpc"
 url_template = "wss://lb.drpc.live/polygon/${DRPC_KEY}"
 
-[[nodes]]                        # -> node_4
+[[nodes]]                   # -> node_4
 name         = "quicknode"
 url_template = "wss://${QUICKNODE_SUBDOMAIN}.matic.quiknode.pro/${QUICKNODE_KEY}"
 
-[[nodes]]                        # -> node_5
+[[nodes]]                   # -> node_5
 name         = "alchemy"
 url_template = "wss://polygon-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}"
