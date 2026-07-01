@@ -14,19 +14,19 @@ from datetime import datetime, timezone
 
 from .config import ConfigError, load_config
 
-# Fixed input locations, relative to the repo root.
+# Various paths and directories
 CONFIG_PATH = "config.toml"
 ENV_PATH = ".env"
-
-# The three-stage data directories, relative to the repo root.
 RAW_DIR = os.path.join("data", "raw")
 PROCESSED_DIR = os.path.join("data", "processed")
 
 
-def _default_raw_path() -> str:
-    """A timestamped parquet path under data/raw/ (sortable, filesystem-safe)."""
-    stamp = datetime.now(timezone.utc).strftime("run_%Y%m%dT%H%M%SZ")
-    return os.path.join(RAW_DIR, f"{stamp}.parquet")
+def _generate_new_raw_path() -> str:
+    """
+    Returns a unique path for a new run's parquet file based on the current time.
+    """
+    filename = datetime.now(timezone.utc).strftime("run_%m-%d-%Y_%H-%M-%S_UTC")
+    return os.path.join(RAW_DIR, f"{filename}.parquet")
 
 
 def _prompt_for_parquet(directories: list[str], *, action: str) -> str | None:
@@ -76,7 +76,7 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
         print(f"config error: {exc}")
         return 1
 
-    output_path = _default_raw_path()
+    output_path = _generate_new_raw_path()
     print(f"output: {output_path}")
 
     # Imported lazily so `clean`/`analyze` don't pull in websockets/pyarrow.
