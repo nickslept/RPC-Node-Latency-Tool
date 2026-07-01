@@ -1,9 +1,10 @@
 """
-Avaliable commands:
-    python -m core help        # list the available commands
-    python -m core ingest      # starts a new data collection run
-    python -m core clean       # pick a parquet file to clean from data/raw/. Saves to data/processed/.  
-    python -m core analyze     # pick a file from data/raw/ or data/processed/ to analyze
+Available commands:
+    python -m core              ->       list the available commands
+    python -m core -h OR --help ->       list the available commands
+    python -m core ingest       ->       starts a new data collection run
+    python -m core clean        ->       pick a parquet file to clean from RAW_DIR. Saves to PROCESSED_DIR.  
+    python -m core analyze      ->       pick a file from RAW_DIR OR PROCESSED_DIR to analyze
 """
 
 from __future__ import annotations
@@ -86,7 +87,7 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
 def _cmd_clean(args: argparse.Namespace) -> int:
     input_path = _select_parquet_file([RAW_DIR], action="clean")
     if input_path is None:
-        print("[ERROR] No file selected or nothing to clean.")
+        print("[ERROR] No file selected or no files to clean.")
         return 1
 
     print("Not implemented yet")
@@ -96,7 +97,7 @@ def _cmd_clean(args: argparse.Namespace) -> int:
 def _cmd_analyze(args: argparse.Namespace) -> int:
     input_path = _select_parquet_file([RAW_DIR, PROCESSED_DIR], action="analyze")
     if input_path is None:
-        print("[ERROR] No file selected or nothing to analyze.")
+        print("[ERROR] No file selected or no files to analyze.")
         return 1
 
     print("Not implemented yet")
@@ -105,29 +106,25 @@ def _cmd_analyze(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="rpc-latency",
-        description="RPC node latency comparison tool (ingest -> clean -> analyze).",
+        prog="rpc-node-latency-tool",
+        description="A program that collects, cleans, and analyzes blockchain data from multiple RPC nodes for latency comparison.",
     )
-    # Not required: running with no command falls back to printing help (see main).
     sub = parser.add_subparsers(dest="command")
 
     p_ingest = sub.add_parser(
-        "ingest", help="collect live per-node trade arrival timestamps to a parquet"
+        "ingest", help="starts a new data collection run"
     )
     p_ingest.set_defaults(func=_cmd_ingest)
 
     p_clean = sub.add_parser(
-        "clean", help="(not implemented) pick a raw parquet to dedupe"
+        "clean", help="pick a parquet file to clean from RAW_DIR. Saves to PROCESSED_DIR."
     )
     p_clean.set_defaults(func=_cmd_clean)
 
     p_analyze = sub.add_parser(
-        "analyze", help="(not implemented) pick a raw/processed parquet to analyze"
+        "analyze", help="pick a parquet file from RAW_DIR or PROCESSED_DIR to analyze"
     )
     p_analyze.set_defaults(func=_cmd_analyze)
-
-    p_help = sub.add_parser("help", help="list the available commands")
-    p_help.set_defaults(func=lambda args: (parser.print_help() or 0))
 
     return parser
 
@@ -135,8 +132,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    # With no subcommand there's no func to dispatch to -- show the command list.
-    if not getattr(args, "func", None):
+    if not getattr(args, "func", None): #prints help if no function specified
         parser.print_help()
         return 0
     return args.func(args)
