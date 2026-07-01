@@ -29,44 +29,43 @@ def _generate_new_raw_path() -> str:
     return os.path.join(RAW_DIR, f"{filename}.parquet")
 
 
-def _prompt_for_parquet(directories: list[str], *, action: str) -> str | None:
-    """Lists the parquet files under ``directories`` and asks the user to pick one.
-
-    ``directories`` are the folders to scan, in priority order; missing folders
-    are skipped. ``action`` is the verb shown in the prompt (e.g. "clean").
-
-    Returns the chosen path, or None if there is nothing to pick or the user
-    cancels (by entering 'q', a blank line, or EOF/Ctrl-C).
+def _select_parquet_file(directories: list[str], *, action: str) -> str | None:
     """
-    # Gather every .parquet file across the given directories, newest first.
-    candidates: list[str] = []
+    Lists the parquet files under ``directories`` and asks the user to pick a file.
+
+    ``directories`` is a list of the folders to scan (example item: raw/). 
+    ``action`` is the specific command (e.g. "clean").
+
+    Returns the chosen path as a String if possible. Returns None if there are no files to pick from OR if the user manually cancels.
+    """
+    files: list[str] = []
     for directory in directories:
         if not os.path.isdir(directory):
             continue
         for name in os.listdir(directory):
             if name.endswith(".parquet"):
-                candidates.append(os.path.join(directory, name))
-    candidates.sort(key=os.path.getmtime, reverse=True)
+                files.append(os.path.join(directory, name))
+    files.sort(key=os.path.getmtime, reverse=False)
 
-    if not candidates:
+    if not files:
         print(f"No parquet files found in: {', '.join(directories)}")
         return None
 
-    print(f"Select a file to {action} (newest first):")
-    for number, path in enumerate(candidates, start=1):
-        print(f"  {number}) {path}")
+    print(f"Select a file to {action}:")
+    for number, path in enumerate(files, start=1):
+        print(f"[{number}] {path}")
 
     while True:
         try:
-            choice = input(f"Enter a number 1-{len(candidates)} ('q' to cancel): ").strip()
+            choice = input(f"Enter a number from 1-{len(files)} ('stop' to cancel): ").strip()
         except (EOFError, KeyboardInterrupt):
             print()
             return None
-        if choice.lower() in ("", "q", "quit"):
+        if choice.lower() in ("", "stop"):
             return None
-        if choice.isdigit() and 1 <= int(choice) <= len(candidates):
-            return candidates[int(choice) - 1]
-        print("Invalid selection, try again.")
+        if choice.isdigit() and 1 <= int(choice) <= len(files):
+            return files[int(choice) - 1]
+        print("Invalid selection, please try again.")
 
 
 def _cmd_ingest(args: argparse.Namespace) -> int:
@@ -86,9 +85,9 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
 
 
 def _cmd_clean(args: argparse.Namespace) -> int:
-    input_path = _prompt_for_parquet([RAW_DIR], action="clean")
+    input_path = _select_parquet_file([RAW_DIR], action="clean")
     if input_path is None:
-        print("No file selected; nothing to clean.")
+        print("[ERROR] No file selected or nothing to clean.")
         return 1
 
     print(f"selected: {input_path}")
@@ -102,9 +101,9 @@ def _cmd_clean(args: argparse.Namespace) -> int:
 
 
 def _cmd_analyze(args: argparse.Namespace) -> int:
-    input_path = _prompt_for_parquet([RAW_DIR, PROCESSED_DIR], action="analyze")
+    input_path = _select_parquet_file([RAW_DIR, PROCESSED_DIR], action="analyze")
     if input_path is None:
-        print("No file selected; nothing to analyze.")
+        print("[ERROR] No file selected or nothing to analyze.")
         return 1
 
     print(f"selected: {input_path}")
