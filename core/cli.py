@@ -2,7 +2,7 @@
 Available commands:
     python -m core              ->       list the available commands
     python -m core -h OR --help ->       list the available commands
-    python -m core ingest       ->       starts a new data collection run
+    python -m core ingest       ->       starts a new data collection run (optional: --duration HH:MM:SS to automatically stop the run after that much time)
     python -m core clean        ->       pick a parquet file to clean from RAW_DIR. Saves to PROCESSED_DIR.  
     python -m core analyze      ->       pick a file from RAW_DIR OR PROCESSED_DIR to analyze
 """
@@ -20,6 +20,26 @@ CONFIG_PATH = "config.toml"
 ENV_PATH = ".env"
 RAW_DIR = os.path.join("data", "raw")
 PROCESSED_DIR = os.path.join("data", "processed")
+
+
+def _parse_duration(value: str) -> int:
+    """
+    Converts a run duration string formatted as HH:MM:SS (e.g. 101:23:10) into total seconds.
+
+    Hours can be any non-negative number. Minutes and seconds must be between 0 and 59.
+
+    Returns the duration as a total number of seconds.
+    """
+    parts = value.split(":")
+    if len(parts) != 3 or not all(part.isdigit() for part in parts): # checks for non-integers AND negative numbers
+        raise argparse.ArgumentTypeError(f"[ERROR] Invalid duration format: '{value}'. Expected HH:MM:SS (e.g. 101:23:10)")
+    hours, minutes, seconds = (int(part) for part in parts)
+    if minutes > 59 or seconds > 59:
+        raise argparse.ArgumentTypeError(f"[ERROR] Invalid duration '{value}', minutes and seconds must be between 0 and 59")
+    total_seconds = hours * 3600 + minutes * 60 + seconds
+    if total_seconds == 0:
+        raise argparse.ArgumentTypeError(f"[ERROR] Invalid duration '{value}', duration must be greater than 00:00:00")
+    return total_seconds
 
 
 def _generate_new_raw_path() -> str:
@@ -81,7 +101,7 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
     print(f"[INFO] Output path: {output_path}")
 
     from .pipeline.runner import run as run_ingestion
-    return run_ingestion(config, output_path)
+    return run_ingestion(config, output_path, duration_seconds=args.duration)
 
 
 def _cmd_clean(args: argparse.Namespace) -> int:
@@ -113,6 +133,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_ingest = sub.add_parser(
         "ingest", help="starts a new data collection run"
+    )
+    p_ingest.add_argument(
+        "--duration",
+        type=_parse_duration,
+        default=None,
+        metavar="HH:MM:SS",
+        help="automatically stops the run after that much time (format: HH:MM:SS; e.g. 101:23:10)",
     )
     p_ingest.set_defaults(func=_cmd_ingest)
 
