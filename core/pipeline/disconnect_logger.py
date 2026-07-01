@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, time, timezone
+import time
+from datetime import datetime, timezone
 
 from .listener import ListenerExit
 from .state import RunState
@@ -38,7 +39,7 @@ class DisconnectLogger:
 
         line = (
             f"{curr_time} | node_{node.index} ({node.name}) | DISCONNECT "
-            f"| Elapsed seconds: {elapsed_seconds:.3f}s | Reason: {event.reason}"
+            f"| Elapsed seconds: {elapsed_seconds}s | Reason: {event.reason}"
         )
         with open(self.path, "a") as fh:
             fh.write(line + "\n")
