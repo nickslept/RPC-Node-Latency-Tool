@@ -48,7 +48,7 @@ def _select_parquet_file(directories: list[str], *, action: str) -> str | None:
     files.sort(key=os.path.getmtime, reverse=False)
 
     if not files:
-        print(f"No parquet files found in: {', '.join(directories)}")
+        print(f"[ERROR] No parquet files found in: {', '.join(directories)}")
         return None
 
     print(f"Select a file to {action}:")
@@ -65,18 +65,18 @@ def _select_parquet_file(directories: list[str], *, action: str) -> str | None:
             return None
         if choice.isdigit() and 1 <= int(choice) <= len(files):
             return files[int(choice) - 1]
-        print("Invalid selection, please try again.")
+        print("[ERROR] Invalid selection, please try again.")
 
 
 def _cmd_ingest(args: argparse.Namespace) -> int:
     try:
         config = load_config(CONFIG_PATH, env_path=ENV_PATH)
     except ConfigError as exc:
-        print(f"config error: {exc}")
+        print(f"[ERROR] Config error: {exc}")
         return 1
 
     output_path = _generate_new_raw_path()
-    print(f"output: {output_path}")
+    print(f"[INFO] Output path: {output_path}")
 
     # Imported lazily so `clean`/`analyze` don't pull in websockets/pyarrow.
     from .pipeline.runner import run as run_ingestion
