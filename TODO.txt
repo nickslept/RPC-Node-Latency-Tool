@@ -12,7 +12,7 @@ RENAMING:
 
 GENERAL TODO:
 - write better/more indepth file descs for config.py, connect.py, and listener.py
-- modify config and pyproject .toml files
+- modify pyproject.toml 
 - add to parquet file metadeta which node provider represents which column #. This is to account for when people switch the order of node providers (you don't want to mislabel the node providers in the chart), run time end (ns)
 
 UPCOMING FEATURES:
