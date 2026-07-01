@@ -64,6 +64,7 @@ def _select_parquet_file(directories: list[str], *, action: str) -> str | None:
         if choice.lower() in ("", "stop"):
             return None
         if choice.isdigit() and 1 <= int(choice) <= len(files):
+            print(f"[INFO] Selected: {files[int(choice) - 1]}")
             return files[int(choice) - 1]
         print("[ERROR] Invalid selection, please try again.")
 
@@ -88,13 +89,7 @@ def _cmd_clean(args: argparse.Namespace) -> int:
         print("[ERROR] No file selected or nothing to clean.")
         return 1
 
-    print(f"selected: {input_path}")
-    print("`clean` is not implemented yet.")
-    print(
-        "Planned: read the selected raw parquet, collapse duplicate tx_hash "
-        "rows by taking each node column's earliest (min) value, and write the "
-        "deduplicated result to data/processed/."
-    )
+    print("Not implemented yet")
     return 2
 
 
@@ -104,12 +99,7 @@ def _cmd_analyze(args: argparse.Namespace) -> int:
         print("[ERROR] No file selected or nothing to analyze.")
         return 1
 
-    print(f"selected: {input_path}")
-    print("`analyze` is not implemented yet.")
-    print(
-        "Planned: read the selected parquet, compute the lag metric, and write "
-        "charts and statistics to data/results/."
-    )
+    print("Not implemented yet")
     return 2
 
 
