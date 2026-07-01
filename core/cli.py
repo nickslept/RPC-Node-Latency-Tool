@@ -1,21 +1,9 @@
-"""Command-line interface: ``ingest`` / ``clean`` / ``analyze`` / ``help``.
-
-Only ``ingest`` is implemented -- it runs the live data-collection pipeline.
-``clean`` and ``analyze`` are stubs to be filled in later. Rather than taking a
-file path on the command line, each one interactively prompts you to pick the
-parquet file it should operate on (``clean`` from data/raw/, ``analyze`` from
-data/raw/ or data/processed/) so the three-stage flow (raw -> processed ->
-results) is visible.
-
-None of the commands take flags. ``ingest`` always reads ``config.toml`` and
-``.env`` from the repo root and writes a timestamped file under data/raw/.
-
-Run it from the repo root, e.g.:
-
-    python -m core ingest      # collect a run to data/raw/run_<timestamp>.parquet
-    python -m core clean       # pick a file from data/raw/ to clean
-    python -m core analyze     # pick a file from data/raw/ or data/processed/
+"""
+Avaliable commands:
     python -m core help        # list the available commands
+    python -m core ingest      # starts a new data collection run
+    python -m core clean       # pick a parquet file to clean from data/raw/. Saves to data/processed/.  
+    python -m core analyze     # pick a file from data/raw/ or data/processed/ to analyze
 """
 
 from __future__ import annotations
