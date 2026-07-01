@@ -22,12 +22,24 @@ def _install_signal_handlers(loop: asyncio.AbstractEventLoop, state: RunState) -
     Installs signal handlers (SIGINT, SIGTERM) to trigger a graceful shutdown.
     """
     def handle(signum, frame):
-        print(f"\n[SHUTDOWN] Stopping all processes and flushing data. WARNING: Pressing Ctrl+C again will force-quit and could corrupt the parquet file.")
+        print(f"\n[SHUTDOWN] Stopping all processes and flushing data... WARNING: Pressing Ctrl+C again will force-quit and could corrupt the parquet file.")
         loop.call_soon_threadsafe(state.shutdown_event.set)
         signal.signal(signum, signal.SIG_DFL)
 
     for sig in (signal.SIGINT, signal.SIGTERM):
         signal.signal(sig, handle)
+
+async def _stop_after_duration(state: RunState, duration_seconds: int) -> None:
+    """
+    Sets the shutdown event once ``duration_seconds`` have elapsed, measured from ``state.start_ref_ns``.
+    """
+    remaining = duration_seconds - (time.monotonic_ns() - state.start_ref_ns) / 1_000_000_000
+    if remaining > 0:
+        await asyncio.sleep(remaining)
+    if not state.shutdown_event.is_set():
+        print(f"\n[SHUTDOWN] Run duration of {format_readable_time(duration_seconds)} reached. Stopping all processes and flushing data... WARNING: Pressing Ctrl+C again will force-quit and could corrupt the parquet file.")
+        state.shutdown_event.set()
+
 
 def _print_summary(state: RunState, output_path: str) -> None:
     total = state.counters.trades_written
@@ -81,10 +93,12 @@ def _make_listener_handler(
     return handler
 
 
-async def run_ingestion(config: Config, output_path: str) -> int:
+async def run_ingestion(config: Config, output_path: str, duration_seconds: int | None = None) -> int:
     """
-    Runs the data ingestion pipeline. 
-    
+    Runs the data ingestion pipeline.
+
+    ``duration_seconds`` (optional) automatically stops the run that long after data collection begins.
+
     Returns ``0`` on success, and ``1`` on pre-flight abort.
     """
     state = RunState.create()
@@ -119,7 +133,12 @@ async def run_ingestion(config: Config, output_path: str) -> int:
         )
     )
 
-    # 5. Sets up each listener with a disconnect logger.
+    # 5. Starts the timer that ends the run automatically (only if a duration was given).
+    timer_task = None
+    if duration_seconds is not None:
+        timer_task = asyncio.create_task(_stop_after_duration(state, duration_seconds))
+
+    # 6. Sets up each listener with a disconnect logger.
     disconnect_logger = DisconnectLogger(_disconnect_log_path(output_path), state)
     stop_on_disconnect = config.connection.stop_on_disconnect
     listener_tasks = []
@@ -133,14 +152,19 @@ async def run_ingestion(config: Config, output_path: str) -> int:
         listener_tasks.append(task)
 
     try:
-        print(f"[RECORDING] Attempting to start data collection for {len(connections)} nodes... Press Ctrl+C to stop the run.")
-        
-        # 6. Starts recording (every listener begins together)
+        if duration_seconds is not None:
+            print(f"[RECORDING] Attempting to start data collection for {len(connections)} nodes... The run will stop automatically after {format_readable_time(duration_seconds)} time has passed... Press Ctrl+C to stop the run early.")
+        else:
+            print(f"[RECORDING] Attempting to start data collection for {len(connections)} nodes... Press Ctrl+C to stop the run.")
+
+        # 7. Starts recording (every listener begins together)
         state.start_recording.set()
         await state.shutdown_event.wait()
 
-        # 7. Shutdown the pipeline.
+        # 8. Shutdown the pipeline.
         producers = [*listener_tasks, processor_task, scanner_task]
+        if timer_task is not None:
+            producers.append(timer_task)
         for task in producers:
             task.cancel()
         await asyncio.gather(*producers, return_exceptions=True)
@@ -154,8 +178,8 @@ async def run_ingestion(config: Config, output_path: str) -> int:
     return 0
 
 
-def run(config: Config, output_path: str) -> int:
+def run(config: Config, output_path: str, duration_seconds: int | None = None) -> int:
     """
         Entry point (used by the CLI).
     """
-    return asyncio.run(run_ingestion(config, output_path))
+    return asyncio.run(run_ingestion(config, output_path, duration_seconds))
