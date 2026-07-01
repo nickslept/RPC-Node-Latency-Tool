@@ -78,9 +78,7 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
     output_path = _generate_new_raw_path()
     print(f"[INFO] Output path: {output_path}")
 
-    # Imported lazily so `clean`/`analyze` don't pull in websockets/pyarrow.
     from .pipeline.runner import run as run_ingestion
-
     return run_ingestion(config, output_path)
 
 
