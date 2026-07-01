@@ -132,14 +132,14 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command")
 
     p_ingest = sub.add_parser(
-        "ingest", help="starts a new data collection run"
+        "ingest", help="starts a new data collection run. saves to RAW_DIR. optional: --duration HH:MM:SS to automatically stop the run after that much time."
     )
     p_ingest.add_argument(
         "--duration",
         type=_parse_duration,
         default=None,
         metavar="HH:MM:SS",
-        help="automatically stops the run after that much time (format: HH:MM:SS; e.g. 101:23:10)",
+        help="automatically stops the run after that much time (format: HH:MM:SS; e.g. 101:23:10).",
     )
     p_ingest.set_defaults(func=_cmd_ingest)
 
@@ -149,7 +149,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_clean.set_defaults(func=_cmd_clean)
 
     p_analyze = sub.add_parser(
-        "analyze", help="pick a parquet file from RAW_DIR or PROCESSED_DIR to analyze"
+        "analyze", help="pick a parquet file from RAW_DIR or PROCESSED_DIR to analyze."
     )
     p_analyze.set_defaults(func=_cmd_analyze)
 
