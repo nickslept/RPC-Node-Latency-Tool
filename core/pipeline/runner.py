@@ -154,7 +154,7 @@ async def run_ingestion(config: Config, output_path: str, duration_seconds: int 
 
     try:
         if duration_seconds is not None:
-            print(f"[RECORDING] Attempting to start data collection for {len(connections)} nodes... The run will stop automatically after {format_readable_time(duration_seconds)} time has passed... Press Ctrl+C to stop the run early.")
+            print(f"[RECORDING] Attempting to start data collection for {len(connections)} nodes... Data collection will stop automatically after running for {format_readable_time(duration_seconds)}... Press Ctrl+C to stop the run early.")
         else:
             print(f"[RECORDING] Attempting to start data collection for {len(connections)} nodes... Press Ctrl+C to stop the run.")
 
