@@ -117,7 +117,7 @@ async def run_ingestion(config: Config, output_path: str, duration_seconds: int 
 
     # 3. Captures the run's start time.
     state.start_ref_ns = time.monotonic_ns()
-    state.run_started_utc = datetime.now(timezone.utc).isoformat()
+    state.run_start_utc = datetime.now(timezone.utc).isoformat()
 
     # 4. Creates the tasks for the writer, processor, and scanner.
     writer_task = asyncio.create_task(

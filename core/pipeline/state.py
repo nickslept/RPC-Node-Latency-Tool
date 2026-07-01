@@ -40,7 +40,7 @@ class RunState:
     start_recording: asyncio.Event # begins when start_ref_ns is captured; listeners begin sending data together
     start_ref_ns: int | None = None    # time when data collection begins
     end_ref_ns: int | None = None      # time when shutdown is triggered (data collection ends)
-    run_started_utc: str | None = None  # wall-clock (ISO-8601) when data collection begins; for parquet metadata
+    run_start_utc: str | None = None  # wall-clock (ISO-8601) when data collection begins; for parquet metadata
 
     @classmethod
     def create(cls) -> "RunState":
@@ -54,5 +54,5 @@ class RunState:
             start_recording=asyncio.Event(),
             start_ref_ns=None,
             end_ref_ns=None,
-            run_started_utc=None,
+            run_start_utc=None,
         )

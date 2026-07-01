@@ -23,7 +23,7 @@ class DisconnectLogger:
         os.makedirs(os.path.dirname(self.path) or ".", exist_ok=True)
         with open(self.path, "a") as fh:
             fh.write(
-                f"Run started: {self.state.run_started_utc} "
+                f"Run started: {self.state.run_start_utc} "
                 f"| start_ref_ns={self.state.start_ref_ns}\n"
             )
         self._header_written = True

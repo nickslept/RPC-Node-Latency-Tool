@@ -47,10 +47,10 @@ class _ParquetSink:
 
         if self.state.start_ref_ns is None:
             raise RuntimeError("Writer was opened before start_ref was set by the runner.")
-        if self.state.run_started_utc is None:
-            raise RuntimeError("Writer was opened before run_started_utc was set by the runner.")
+        if self.state.run_start_utc is None:
+            raise RuntimeError("Writer was opened before run_start_utc was set by the runner.")
         
-        meta = schema.build_run_metadata(self.state.start_ref_ns, self.state.run_started_utc)
+        meta = schema.build_run_metadata(self.state.start_ref_ns, self.state.run_start_utc)
         self._file_schema = schema.SCHEMA.with_metadata(meta)
         os.makedirs(os.path.dirname(self.path) or ".", exist_ok=True)
         self._writer = pq.ParquetWriter(self.path, self._file_schema)

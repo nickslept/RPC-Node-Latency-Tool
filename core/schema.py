@@ -37,15 +37,15 @@ SCHEMA: pa.Schema = pa.schema(
 # --- Metadata ---
 
 META_START_REF_NS = b"start_ref_ns"        # raw time.monotonic_ns() at gate-open
-META_RUN_STARTED_UTC = b"run_started_utc"  # ISO-8601 wall-clock run start
+META_RUN_START_UTC = b"run_start_utc"  # ISO-8601 wall-clock run start
 
-def build_run_metadata(start_ref_ns: int, run_started_utc: str) -> dict[bytes, bytes]:
+def build_run_metadata(start_ref_ns: int, run_start_utc: str) -> dict[bytes, bytes]:
     """
     Builds and returns a dictionary containing the file metadata for a run.
     """
     return {
         META_START_REF_NS: str(start_ref_ns).encode("utf-8"),
-        META_RUN_STARTED_UTC: run_started_utc.encode("utf-8"),
+        META_RUN_START_UTC: run_start_utc.encode("utf-8"),
     }
 
 
@@ -56,5 +56,5 @@ def read_run_metadata(schema: pa.Schema) -> dict[str, object]:
     md = schema.metadata or {}
     return {
         "start_ref_ns": int(md[META_START_REF_NS].decode("utf-8")),
-        "run_started_utc": md[META_RUN_STARTED_UTC].decode("utf-8"),
+        "run_start_utc": md[META_RUN_START_UTC].decode("utf-8"),
     }
