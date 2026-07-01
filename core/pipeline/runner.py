@@ -43,7 +43,8 @@ async def _stop_after_duration(state: RunState, duration_seconds: int) -> None:
 
 def _print_summary(state: RunState, output_path: str) -> None:
     total = state.counters.trades_written
-    duration = (time.monotonic_ns() - state.start_ref_ns) // 1_000_000_000
+    end_ns = state.end_ref_ns if state.end_ref_ns is not None else time.monotonic_ns()
+    duration = (end_ns - state.start_ref_ns) // 1_000_000_000
     print(f"\n[SUMMARY] {total:,} trades written to {output_path}")
     print(f"[SUMMARY] Run time: {format_readable_time(duration)}")
     for i, reported in enumerate(state.counters.per_node_reports):
@@ -157,9 +158,10 @@ async def run_ingestion(config: Config, output_path: str, duration_seconds: int 
         else:
             print(f"[RECORDING] Attempting to start data collection for {len(connections)} nodes... Press Ctrl+C to stop the run.")
 
-        # 7. Starts recording (every listener begins together)
+        # 7. Starts recording (every listener begins together), wait for the shutdown event, capture end time
         state.start_recording.set()
         await state.shutdown_event.wait()
+        state.end_ref_ns = time.monotonic_ns()
 
         # 8. Shutdown the pipeline.
         producers = [*listener_tasks, processor_task, scanner_task]
