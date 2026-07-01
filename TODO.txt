@@ -7,7 +7,7 @@ RENAMING:
 - connect.py --> connections.py
 - core --> src
 - ingest --> collect
-- preflight --> precollection
+- preflight/pre-flight .. double check for flight --> precollection
 - completion --> promotion; complete --> promote
 
 GENERAL TODO:
