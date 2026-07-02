@@ -30,10 +30,17 @@ class _ParquetSink:
     Also contains logic for progress updates.
     """
 
-    def __init__(self, output_path: str, state: RunState, batch_size: int):
+    def __init__(
+        self,
+        output_path: str,
+        state: RunState,
+        batch_size: int,
+        node_names: tuple[str, ...],
+    ):
         self.path = output_path
         self.state = state
         self.batch_size = batch_size
+        self.node_names = node_names
         self.buffer: list[WriteItem] = []
         self._writer: pq.ParquetWriter | None = None
         self._file_schema: pa.Schema | None = None
@@ -50,7 +57,9 @@ class _ParquetSink:
         if self.state.run_start_utc is None:
             raise RuntimeError("Writer was opened before run_start_utc was set by the runner.")
         
-        meta = schema.build_run_metadata(self.state.start_ref_ns, self.state.run_start_utc)
+        meta = schema.build_start_metadata(
+            self.state.start_ref_ns, self.state.run_start_utc, self.node_names
+        )
         self._file_schema = schema.SCHEMA.with_metadata(meta)
         os.makedirs(os.path.dirname(self.path) or ".", exist_ok=True)
         self._writer = pq.ParquetWriter(self.path, self._file_schema)
@@ -109,6 +118,11 @@ class _ParquetSink:
                 self._ensure_writer_open()
         finally:
             if self._writer is not None:
+                # adds the end_ref_ns metadata to the file before closing
+                end_ref = self.state.end_ref_ns
+                if end_ref is None:
+                    end_ref = time.monotonic_ns()
+                self._writer.add_key_value_metadata(schema.build_end_metadata(end_ref))
                 self._writer.close()
                 self._writer = None
 
@@ -129,12 +143,17 @@ class _ParquetSink:
         )
 
 
-async def run_writer(state: RunState, output_path: str, batch_size: int) -> None:
-    """Drains ``write_queue`` into a held-open parquet file until the ``STOP_WRITER`` flag is received.
+async def run_writer(
+    state: RunState,
+    output_path: str,
+    batch_size: int,
+    node_names: tuple[str, ...],
+) -> None:
+    """Drains ``write_queue`` into a parquet file until the ``STOP_WRITER`` flag is received.
 
-    Closes the parquet file cleanly when the flag is received.
+    Closes the parquet file cleanly & adds the end metadata when the flag is received.
     """
-    sink = _ParquetSink(output_path, state, batch_size)
+    sink = _ParquetSink(output_path, state, batch_size, node_names)
     get = state.write_queue.get
     try:
         while True:
