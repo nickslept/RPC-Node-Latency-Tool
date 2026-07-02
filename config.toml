@@ -10,9 +10,9 @@ batch_size = 250                # amount of rows that need to accumulate before 
 ack_timeout_seconds = 10         # amount of time (in seconds) each node waits for a subscription ack before data collection (no retries)
 
 [connection]
-ping_interval_seconds = 5        # how often the websocket keepalive ping is sent
-ping_timeout_seconds  = 5        # how long to wait for a "pong" response from a node before considering the connection dead and force closing the connection
-stop_on_disconnect    = true     # true = if any node disconnects mid-run, then data collection will safely stop. False = data collection will continue
+ping_interval_seconds = 10        # how often the websocket keepalive ping is sent
+ping_timeout_seconds  = 20        # how long to wait for a "pong" response from a node before considering the connection dead and force closing the connection
+stop_on_disconnect    = false     # true = if any node disconnects mid-run, then data collection will safely stop. False = data collection will continue
 
 [filter]
 contracts = [
