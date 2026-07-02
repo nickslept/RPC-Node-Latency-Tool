@@ -48,9 +48,8 @@ def _print_summary(state: RunState, output_path: str) -> None:
     print(f"\n[SUMMARY] {total:,} trades written to {output_path}")
     print(f"[SUMMARY] Run time: {format_readable_time(duration)}")
     for i, reported in enumerate(state.counters.per_node_reports):
-        rate = (reported / total * 100) if total else 0.0
-        print(f"[SUMMARY] node_{i + 1}: {reported:,} trades reported | Rate: {rate:.1f}%")
-    print("[SUMMARY] Note that the above numbers are the amount of trades REPORTED, not necessarily the amount of trades that were successfully processed & written. The rate is relative to the total number of trades written.")
+        print(f"[SUMMARY] node_{i + 1}: {reported:,} trades reported")
+    print("[SUMMARY] Note that the above numbers are the amount of trades REPORTED, not necessarily the amount of trades that were successfully processed & written.")
 
 
 def _disconnect_log_path(output_path: str) -> str:
@@ -121,7 +120,12 @@ async def run_ingestion(config: Config, output_path: str, duration_seconds: int 
 
     # 4. Creates the tasks for the writer, processor, and scanner.
     writer_task = asyncio.create_task(
-        run_writer(state, output_path, config.writer.batch_size)
+        run_writer(
+            state,
+            output_path,
+            config.writer.batch_size,
+            tuple(node.name for node in config.nodes),
+        )
     )
     processor_task = asyncio.create_task(
         run_processor(state, config.completion.min_nodes_required)
