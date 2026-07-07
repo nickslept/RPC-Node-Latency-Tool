@@ -15,11 +15,11 @@ dependencies = [
 ]
 
 # Lets you run `latency-data ingest` after `pip install -e .`
-# (equivalent to `python -m core ingest`).
+# (equivalent to `python -m src ingest`).
 [project.scripts]
-latency-data = "core.cli:main"
+latency-data = "src.cli:main"
 
-# Package the `core` package and its subpackages
+# Package the `src` package and its subpackages
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["core*"]
+include = ["src*"]

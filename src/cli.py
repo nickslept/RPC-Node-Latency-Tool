@@ -1,10 +1,10 @@
 """
 Available commands:
-    python -m core              ->       list the available commands
-    python -m core -h OR --help ->       list the available commands
-    python -m core ingest       ->       starts a new data collection run (optional: --duration HH:MM:SS to automatically stop the run after that much time)
-    python -m core clean        ->       pick a parquet file to clean from RAW_DIR. Saves to PROCESSED_DIR.  
-    python -m core analyze      ->       pick a file from RAW_DIR OR PROCESSED_DIR to analyze
+    python -m src              ->       list the available commands
+    python -m src -h OR --help ->       list the available commands
+    python -m src ingest       ->       starts a new data collection run (optional: --duration HH:MM:SS to automatically stop the run after that much time)
+    python -m src clean        ->       pick a parquet file to clean from RAW_DIR. Saves to PROCESSED_DIR.  
+    python -m src analyze      ->       pick a file from RAW_DIR OR PROCESSED_DIR to analyze
 """
 
 from __future__ import annotations

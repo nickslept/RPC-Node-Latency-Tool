@@ -5,7 +5,6 @@ FILE-SPECIFIC BUG FIXES/TODO:
 
 RENAMING:
 - connect.py --> connections.py
-- core --> src
 - ingest --> collect
 - preflight/pre-flight .. double check for flight --> precollection
 - completion --> promotion; complete --> promote
