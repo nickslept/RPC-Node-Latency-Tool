@@ -1,5 +1,4 @@
 FILE-SPECIFIC BUG FIXES/TODO:
-- in writer.py: consider moving _progress_line() and the time reformatting function to a diff file as that isn't directly related to writing data
 - in runner.py: re-review _install_signal_handlers()
 - in cli.py & in the repo desc: update grammar b/c it sounds like the tool analyzes the data itself rather than the timestamps of when it was read
 
