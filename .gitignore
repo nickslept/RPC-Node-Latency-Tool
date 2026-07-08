@@ -2,7 +2,9 @@
 .env
 
 # --- Data (contents) ---
-data/**
+data/raw/*
+data/processed/*
+data/results/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/results/.gitkeep
