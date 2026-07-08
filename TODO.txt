@@ -11,6 +11,7 @@ RENAMING:
 
 GENERAL TODO:
 - modify pyproject.toml 
+- search for instances of ' "[ ' and print() to ensure that all msgs are consistent
 
 UPCOMING FEATURES:
 - implement data cleaning tool
