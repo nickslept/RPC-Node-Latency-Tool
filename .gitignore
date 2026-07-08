@@ -1,7 +1,7 @@
 # --- Secrets ---
 .env
 
-# --- Run data: ignore contents, keep the folder skeleton ---
+# --- Data (contents) ---
 data/**
 !data/raw/.gitkeep
 !data/processed/.gitkeep
