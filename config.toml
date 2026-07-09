@@ -1,4 +1,4 @@
-[completion]
+[promotion]
 min_nodes_required       = 5     # promote a transaction into the write queue once this many unique nodes reported it
 timeout_seconds          = 10    # promotes a transaction into the write queue if the earliest recorded timestamp is older than this many seconds
 scanner_interval_seconds = 10    # how often the scanner checks the in-memory dict ("entries") for transactions whose earliest recorded timestamp is older than timeout_seconds

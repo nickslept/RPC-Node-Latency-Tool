@@ -128,13 +128,13 @@ async def run_ingestion(config: Config, output_path: str, duration_seconds: int 
         )
     )
     processor_task = asyncio.create_task(
-        run_processor(state, config.completion.min_nodes_required)
+        run_processor(state, config.promotion.min_nodes_required)
     )
     scanner_task = asyncio.create_task(
         run_scanner(
             state,
-            config.completion.timeout_seconds,
-            config.completion.scanner_interval_seconds,
+            config.promotion.timeout_seconds,
+            config.promotion.scanner_interval_seconds,
         )
     )
 

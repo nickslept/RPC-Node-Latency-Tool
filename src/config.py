@@ -38,12 +38,12 @@ class NodeConfig:
 
 
 @dataclass(frozen=True)
-class CompletionConfig:
-    """The configuration for when a single row is considered complete.
+class PromotionConfig:
+    """The configuration for when a single row is considered ready for promotion.
     
     ``min_nodes_required`` is the minimum number of nodes that must have reported an arrival time for the transaction hash.
-    ``timeout_seconds`` is the maximum time to wait for a row to be complete.
-    ``scanner_interval_seconds`` is the interval at which the scanner checks for the conditions above.
+    ``timeout_seconds`` is the maximum time to wait for the ``min_nodes_required`` condition to be met -- anything that exceeds this time will be promoted once the scanner finds it.
+    ``scanner_interval_seconds`` is the interval at which the scanner checks for the ``timeout_seconds`` condition.
     """
     min_nodes_required: int
     timeout_seconds: float
@@ -102,14 +102,14 @@ class Config:
     The master configuration.
 
     ``nodes`` is a tuple containing the configurations for each node.
-    ``completion`` is the config for when a single row is considered complete.
+    ``promotion`` is the config for when a single row is considered ready for promotion.
     ``writer`` is the config for the writer.
     ``preflight`` is the config for the checks done before data collection truly begins.
     ``connection`` is the config for maintaining and closing connections to the RPC nodes.
     ``filter`` is the config for on-chain event filtering.
     """
     nodes: tuple[NodeConfig, ...]
-    completion: CompletionConfig
+    promotion: PromotionConfig
     writer: WriterConfig
     preflight: PreflightConfig
     connection: ConnectionConfig
@@ -164,24 +164,24 @@ def _positive(value: object, *, name: str) -> float:
 # --- config.toml Table Parsers ---
 
 
-def _parse_completion(raw: dict) -> CompletionConfig:
-    min_nodes = _require(raw, "min_nodes_required", where="completion")
+def _parse_promotion(raw: dict) -> PromotionConfig:
+    min_nodes = _require(raw, "min_nodes_required", where="promotion")
     if not isinstance(min_nodes, int) or isinstance(min_nodes, bool) or not (
         1 <= min_nodes <= NUM_NODES
     ):
         raise ConfigError(
-            f"completion.min_nodes_required must be an integer between 1 and {NUM_NODES}, "
+            f"promotion.min_nodes_required must be an integer between 1 and {NUM_NODES}, "
             f"got {min_nodes!r}"
         )
-    return CompletionConfig(
+    return PromotionConfig(
         min_nodes_required=min_nodes,
         timeout_seconds=_positive(
-            _require(raw, "timeout_seconds", where="completion"),
-            name="completion.timeout_seconds",
+            _require(raw, "timeout_seconds", where="promotion"),
+            name="promotion.timeout_seconds",
         ),
         scanner_interval_seconds=_positive(
-            _require(raw, "scanner_interval_seconds", where="completion"),
-            name="completion.scanner_interval_seconds",
+            _require(raw, "scanner_interval_seconds", where="promotion"),
+            name="promotion.scanner_interval_seconds",
         ),
     )
 
@@ -303,7 +303,7 @@ def load_config(config_path: str, *, env_path: str | None = ".env") -> Config:
 
     return Config(
         nodes=_parse_nodes(data.get("nodes"), env, config_path),
-        completion=_parse_completion(data.get("completion", {})),
+        promotion=_parse_promotion(data.get("promotion", {})),
         writer=_parse_writer(data.get("writer", {})),
         preflight=_parse_preflight(data.get("preflight", {})),
         connection=_parse_connection(data.get("connection", {})),
