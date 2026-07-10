@@ -6,7 +6,6 @@ RENAMING:
 - connect.py --> connections.py
 - ingest --> collect
 - preflight/pre-flight .. double check for flight --> precollection
-- completion --> promotion; complete --> promote
 
 GENERAL TODO:
 - modify pyproject.toml 
