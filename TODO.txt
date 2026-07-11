@@ -1,6 +1,7 @@
 FILE-SPECIFIC BUG FIXES/TODO:
 - in runner.py: re-review _install_signal_handlers()
 - in cli.py & in the repo desc: update grammar b/c it sounds like the tool analyzes the data itself rather than the timestamps of when it was read
+- ensure only processed/ files can be analyzed due to new cleaning behavior
 
 RENAMING:
 - connect.py --> connections.py
@@ -14,4 +15,4 @@ GENERAL TODO:
 UPCOMING FEATURES:
 - implement data cleaning tool
 - implement data analysis tool
-    - ensure that charts are labeled based on parquet file metadeta 
+    - ensure that charts are labeled based on parquet file metadeta (maybe not since new files will be created)
