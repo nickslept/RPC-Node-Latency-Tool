@@ -110,8 +110,8 @@ def _cmd_clean(args: argparse.Namespace) -> int:
         print("[ERROR] No file selected or no files to clean.")
         return 1
 
-    print("Not implemented yet")
-    return 2
+    from .cleaning.cleaner import run_cleaning
+    return run_cleaning(input_path, PROCESSED_DIR)
 
 
 def _cmd_analyze(args: argparse.Namespace) -> int:
