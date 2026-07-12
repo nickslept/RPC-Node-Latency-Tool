@@ -12,6 +12,7 @@ dependencies = [
     "websockets>=12",
     "pyarrow>=14",
     "python-dotenv>=1.0",
+    "polars>=1.18",
 ]
 
 # Lets you run `latency-data ingest` after `pip install -e .`
