@@ -115,7 +115,7 @@ def _cmd_clean(args: argparse.Namespace) -> int:
 
 
 def _cmd_analyze(args: argparse.Namespace) -> int:
-    input_path = _select_parquet_file([RAW_DIR, PROCESSED_DIR], action="analyze")
+    input_path = _select_parquet_file([PROCESSED_DIR], action="analyze")
     if input_path is None:
         print("[ERROR] No file selected or no files to analyze.")
         return 1
