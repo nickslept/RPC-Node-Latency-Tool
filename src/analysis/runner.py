@@ -1,8 +1,3 @@
-"""
-Orchestrates the analyze command: prompts for a bin width, prepares the dataframes, and saves
-every chart into the run's analysis folder under RESULTS_DIR.
-"""
-
 from __future__ import annotations
 
 import os
