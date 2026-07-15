@@ -4,7 +4,7 @@ Available commands:
     python -m src -h OR --help ->       list the available commands
     python -m src ingest       ->       starts a new data collection run (optional: --duration HH:MM:SS to automatically stop the run after that much time)
     python -m src clean        ->       pick a parquet file to clean from RAW_DIR. Saves to PROCESSED_DIR.  
-    python -m src analyze      ->       pick a file from RAW_DIR OR PROCESSED_DIR to analyze
+    python -m src analyze      ->       pick a file from PROCESSED_DIR to analyze. Saves to RESULTS_DIR.
 """
 
 from __future__ import annotations
@@ -20,6 +20,7 @@ CONFIG_PATH = "config.toml"
 ENV_PATH = ".env"
 RAW_DIR = os.path.join("data", "raw")
 PROCESSED_DIR = os.path.join("data", "processed")
+RESULTS_DIR = os.path.join("data", "results")
 
 
 def _parse_duration(value: str) -> int:
@@ -120,8 +121,8 @@ def _cmd_analyze(args: argparse.Namespace) -> int:
         print("[ERROR] No file selected or no files to analyze.")
         return 1
 
-    print("Not implemented yet")
-    return 2
+    from .analysis.runner import run_analysis
+    return run_analysis(input_path, RESULTS_DIR)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -149,7 +150,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_clean.set_defaults(func=_cmd_clean)
 
     p_analyze = sub.add_parser(
-        "analyze", help="pick a parquet file from RAW_DIR or PROCESSED_DIR to analyze."
+        "analyze", help="pick a parquet file from PROCESSED_DIR to analyze. Saves charts to a per-run folder under RESULTS_DIR."
     )
     p_analyze.set_defaults(func=_cmd_analyze)
 
