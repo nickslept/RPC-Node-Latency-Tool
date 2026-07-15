@@ -13,6 +13,8 @@ dependencies = [
     "pyarrow>=14",
     "python-dotenv>=1.0",
     "polars>=1.18",
+    "matplotlib>=3.8",
+    "seaborn>=0.13",
 ]
 
 # Lets you run `latency-data ingest` after `pip install -e .`
