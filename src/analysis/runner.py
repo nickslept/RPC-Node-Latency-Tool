@@ -10,9 +10,8 @@ from . import charts, prep
 
 def _generate_analysis_dir(input_path: str, results_dir: str) -> str:
     """
-    Returns the output folder for a run's charts: ``results_dir`` with the filename's ``cleaned_``
-    prefix replaced by ``analysis_of_`` and the .parquet extension dropped
-    (e.g. cleaned_run_X.parquet -> results_dir/analysis_of_run_X).
+    Returns the output dir containing the folder name (for a run's analysis) as a String: ``results_dir`` with the filename's ``cleaned_``
+    prefix replaced by ``analysis_of_`` and .parquet dropped (e.g. cleaned_run_X.parquet -> results_dir/analysis_of_run_X).
     """
     stem = os.path.splitext(os.path.basename(input_path))[0]
     stem = stem.removeprefix("cleaned_")
