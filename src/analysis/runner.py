@@ -18,24 +18,24 @@ def _generate_analysis_dir(input_path: str, results_dir: str) -> str:
     return os.path.join(results_dir, f"analysis_of_{stem}")
 
 
-def _prompt_bin_seconds() -> int | None:
+def _prompt_bin_size() -> int | None:
     """
-    Asks the user for the bin width (in seconds) used by the time-binned charts.
+    Asks the user for the bin size (in seconds) used by the time-binned charts.
 
     Returns the width as an int, or None if the user cancels.
     """
     while True:
         try:
-            choice = input("Enter a bin width in seconds for the time-binned charts ('stop' to cancel): ").strip()
+            choice = input("Enter a bin size, in seconds, for the time-binned charts ('stop' to cancel): ").strip()
         except (EOFError, KeyboardInterrupt):
             print()
             return None
         if choice.lower() in ("", "stop"):
             return None
         if choice.isdigit() and int(choice) > 0:
-            print(f"[INFO] Bin width: {choice}s")
+            print(f"[INFO] Bin size: {choice}s")
             return int(choice)
-        print("[ERROR] Invalid bin width, please enter a positive whole number of seconds.")
+        print("[ERROR] Invalid bin size, please enter a positive whole number of seconds.")
 
 
 def _safe_filename(name: str) -> str:
@@ -53,7 +53,7 @@ def run_analysis(input_path: str, results_dir: str) -> int:
 
     Returns ``0`` on success, ``1`` if the user cancels or the file is unusable.
     """
-    bin_seconds = _prompt_bin_seconds()
+    bin_seconds = _prompt_bin_size()
     if bin_seconds is None:
         print("[ERROR] No bin width selected.")
         return 1
