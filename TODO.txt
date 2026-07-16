@@ -3,8 +3,6 @@ FILE-SPECIFIC BUG FIXES/TODO:
 - in cli.py (build parser func) & in the repo desc: update grammar b/c it sounds like the tool analyzes the data itself rather than the timestamps of when it was read
 
 RENAMING:
-- connect.py --> connections.py
-- ingest --> collect
 - preflight/pre-flight .. double check for flight --> precollection
 
 GENERAL TODO:
