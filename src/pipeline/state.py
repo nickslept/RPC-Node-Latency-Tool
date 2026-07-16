@@ -1,5 +1,5 @@
 """
-    Holds the mutable state (per run) for the ingestion pipeline.
+    Holds the mutable state (per run) for the data collection pipeline.
 """
 
 from __future__ import annotations

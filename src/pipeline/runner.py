@@ -93,9 +93,9 @@ def _make_listener_handler(
     return handler
 
 
-async def run_ingestion(config: Config, output_path: str, duration_seconds: int | None = None) -> int:
+async def run_collection(config: Config, output_path: str, duration_seconds: int | None = None) -> int:
     """
-    Runs the data ingestion pipeline.
+    Runs the data collection pipeline.
 
     ``duration_seconds`` (optional) automatically stops the run that long after data collection begins.
 
@@ -188,4 +188,4 @@ def run(config: Config, output_path: str, duration_seconds: int | None = None) -
     """
         Entry point (used by the CLI).
     """
-    return asyncio.run(run_ingestion(config, output_path, duration_seconds))
+    return asyncio.run(run_collection(config, output_path, duration_seconds))

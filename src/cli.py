@@ -2,7 +2,7 @@
 Available commands:
     python -m src              ->       list the available commands
     python -m src -h OR --help ->       list the available commands
-    python -m src ingest       ->       starts a new data collection run (optional: --duration HH:MM:SS to automatically stop the run after that much time)
+    python -m src collect       ->       starts a new data collection run (optional: --duration HH:MM:SS to automatically stop the run after that much time)
     python -m src clean        ->       pick a parquet file to clean from RAW_DIR. Saves to PROCESSED_DIR.  
     python -m src analyze      ->       pick a file from PROCESSED_DIR to analyze. Saves to RESULTS_DIR.
 """
@@ -91,7 +91,7 @@ def _select_parquet_file(directories: list[str], *, action: str) -> str | None:
         print("[ERROR] Invalid selection, please try again.")
 
 
-def _cmd_ingest(args: argparse.Namespace) -> int:
+def _cmd_collect(args: argparse.Namespace) -> int:
     try:
         config = load_config(CONFIG_PATH, env_path=ENV_PATH)
     except ConfigError as exc:
@@ -101,8 +101,8 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
     output_path = _generate_new_raw_path()
     print(f"[INFO] Output path: {output_path}")
 
-    from .pipeline.runner import run as run_ingestion
-    return run_ingestion(config, output_path, duration_seconds=args.duration)
+    from .pipeline.runner import run as run_collection
+    return run_collection(config, output_path, duration_seconds=args.duration)
 
 
 def _cmd_clean(args: argparse.Namespace) -> int:
@@ -132,17 +132,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sub = parser.add_subparsers(dest="command")
 
-    p_ingest = sub.add_parser(
-        "ingest", help="starts a new data collection run. saves to RAW_DIR. optional: --duration HH:MM:SS to automatically stop the run after that much time."
+    p_collect = sub.add_parser(
+        "collect", help="starts a new data collection run. saves to RAW_DIR. optional: --duration HH:MM:SS to automatically stop the run after that much time."
     )
-    p_ingest.add_argument(
+    p_collect.add_argument(
         "--duration",
         type=_parse_duration,
         default=None,
         metavar="HH:MM:SS",
         help="automatically stops the run after that much time (format: HH:MM:SS; e.g. 101:23:10).",
     )
-    p_ingest.set_defaults(func=_cmd_ingest)
+    p_collect.set_defaults(func=_cmd_collect)
 
     p_clean = sub.add_parser(
         "clean", help="pick a parquet file to clean from RAW_DIR. Saves to PROCESSED_DIR."
