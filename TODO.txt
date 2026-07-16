@@ -1,7 +1,6 @@
 FILE-SPECIFIC BUG FIXES/TODO:
 - in runner.py: re-review _install_signal_handlers()
 - in cli.py (build parser func) & in the repo desc: update grammar b/c it sounds like the tool analyzes the data itself rather than the timestamps of when it was read
-- ensure only processed/ files can be analyzed due to new cleaning behavior
 
 RENAMING:
 - connect.py --> connections.py
@@ -10,9 +9,3 @@ RENAMING:
 
 GENERAL TODO:
 - modify pyproject.toml 
-- search for instances of ' "[ ' and print() to ensure that all msgs are consistent
-
-UPCOMING FEATURES:
-- implement data analysis tool
-    - maybe -2 = disconnect; -1 = did not report? only problem is when means/medians calculations are done. could do ceiling = did not report, -1 = disconnect instead but overall problem remains
-    - ensure that charts are labeled based on parquet file metadeta (maybe not since new files will be created)
