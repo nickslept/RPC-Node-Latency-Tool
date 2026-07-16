@@ -38,9 +38,13 @@ def _prompt_bin_size() -> int | None:
         print("[ERROR] Invalid bin size, please enter a positive whole number of seconds.")
 
 
-def _safe_filename(name: str) -> str:
+def _ensure_safe_filename(name: str) -> str:
     """
-    Makes a provider name safe to use inside a filename.
+    Makes a RPC node provider's name (found in file metadata) safe to use in a filename. 
+
+    Replaces illegal characters (e.g. /) with "_".
+
+    Returns the filename as a String.
     """
     return "".join(char if char.isalnum() or char in ("-", "_") else "_" for char in name)
 
@@ -90,7 +94,7 @@ def run_analysis(input_path: str, results_dir: str) -> int:
 
     band = prep.bin_percentiles(long, bin_seconds)
     for provider in ordered_providers:
-        path = os.path.join(output_dir, f"percentiles_{_safe_filename(provider)}_{bin_seconds}s.png")
+        path = os.path.join(output_dir, f"percentiles_{_ensure_safe_filename(provider)}_{bin_seconds}s.png")
         charts.save_percentile_bands(band.filter(pl.col("provider") == provider), provider, bin_seconds, path)
         saved.append(path)
 
