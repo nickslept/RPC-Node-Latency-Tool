@@ -8,7 +8,7 @@ import time
 from datetime import datetime, timezone
 
 from ..config import Config, NodeConfig
-from .connections import PreflightError, close_all, open_all
+from .connections import PrecollectionError, close_all, open_all
 from .disconnect_logger import DisconnectLogger
 from .listener import ListenerExit, run_listener
 from .processor import run_processor
@@ -99,7 +99,7 @@ async def run_collection(config: Config, output_path: str, duration_seconds: int
 
     ``duration_seconds`` (optional) automatically stops the run that long after data collection begins.
 
-    Returns ``0`` on success, and ``1`` on pre-flight abort.
+    Returns ``0`` on success, and ``1`` on an error raised before a connection can be established.
     """
     state = RunState.create()
     loop = asyncio.get_running_loop()
@@ -107,7 +107,7 @@ async def run_collection(config: Config, output_path: str, duration_seconds: int
     # 1. Concurrently tries to establish a connection to each node.
     try:
         connections = await open_all(config)
-    except PreflightError as exc:
+    except PrecollectionError as exc:
         print(f"[CONNECTION FAILED] Couldn't establish a connection to every node. Reason: {exc}")
         return 1
 

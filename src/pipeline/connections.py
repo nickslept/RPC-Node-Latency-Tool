@@ -30,7 +30,7 @@ class ConnectError(Exception):
         super().__init__(f"node_{node.index} ({node.name}): {reason}")
 
 
-class PreflightError(Exception):
+class PrecollectionError(Exception):
     """One or more nodes failed before data collection could begin; the run was aborted."""
 
     def __init__(self, failures: list[ConnectError]):
@@ -39,7 +39,7 @@ class PreflightError(Exception):
             f"node_{f.node.index} {f.node.name}: {f.reason}" for f in failures
         )
         super().__init__(
-            f"Pre-flight failed: {len(failures)} node(s) did not subscribe ({summary})"
+            f"Pre-collection failed: {len(failures)} node(s) did not subscribe ({summary})"
         )
 
 
@@ -190,7 +190,7 @@ async def open_all(config: Config) -> list[NodeConnection]:
     Prints one line per node showing the connection status.
     Closes any successful connections on failure.
 
-    Returns: A list of live NodeConnection objects on success. Raises PreflightError on any failure.
+    Returns: A list of live NodeConnection objects on success. Raises ``PrecollectionError`` on any failure.
     """
     results = await asyncio.gather(
         *(
@@ -198,7 +198,7 @@ async def open_all(config: Config) -> list[NodeConnection]:
                 node,
                 config.filter,
                 config.connection,
-                config.preflight.ack_timeout_seconds,
+                config.precollection.ack_timeout_seconds,
             )
             for node in config.nodes
         ),
@@ -220,6 +220,6 @@ async def open_all(config: Config) -> list[NodeConnection]:
 
     if failures:
         await close_all(connections)
-        raise PreflightError(failures)
+        raise PrecollectionError(failures)
 
     return connections

@@ -6,7 +6,7 @@ scanner_interval_seconds = 10    # how often the scanner checks the in-memory di
 [writer]
 batch_size = 250                # amount of rows that need to accumulate before being added to the parquet file
 
-[preflight]
+[precollection]
 ack_timeout_seconds = 10         # amount of time (in seconds) each node waits for a subscription ack before data collection (no retries)
 
 [connection]

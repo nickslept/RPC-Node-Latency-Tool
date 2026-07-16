@@ -61,7 +61,7 @@ class WriterConfig:
 
 
 @dataclass(frozen=True)
-class PreflightConfig:
+class PrecollectionConfig:
     """
     The configuration for the checks done before data collection truly begins.
 
@@ -104,14 +104,14 @@ class Config:
     ``nodes`` is a tuple containing the configurations for each node.
     ``promotion`` is the config for when a single row is considered ready for promotion.
     ``writer`` is the config for the writer.
-    ``preflight`` is the config for the checks done before data collection truly begins.
+    ``precollection`` is the config for the checks done before data collection truly begins.
     ``connection`` is the config for maintaining and closing connections to the RPC nodes.
     ``filter`` is the config for on-chain event filtering.
     """
     nodes: tuple[NodeConfig, ...]
     promotion: PromotionConfig
     writer: WriterConfig
-    preflight: PreflightConfig
+    precollection: PrecollectionConfig
     connection: ConnectionConfig
     filter: FilterConfig
 
@@ -195,11 +195,11 @@ def _parse_writer(raw: dict) -> WriterConfig:
     return WriterConfig(batch_size=batch)
 
 
-def _parse_preflight(raw: dict) -> PreflightConfig:
-    return PreflightConfig(
+def _parse_precollection(raw: dict) -> PrecollectionConfig:
+    return PrecollectionConfig(
         ack_timeout_seconds=_positive(
-            _require(raw, "ack_timeout_seconds", where="preflight"),
-            name="preflight.ack_timeout_seconds",
+            _require(raw, "ack_timeout_seconds", where="precollection"),
+            name="precollection.ack_timeout_seconds",
         )
     )
 
@@ -305,7 +305,7 @@ def load_config(config_path: str, *, env_path: str | None = ".env") -> Config:
         nodes=_parse_nodes(data.get("nodes"), env, config_path),
         promotion=_parse_promotion(data.get("promotion", {})),
         writer=_parse_writer(data.get("writer", {})),
-        preflight=_parse_preflight(data.get("preflight", {})),
+        precollection=_parse_precollection(data.get("precollection", {})),
         connection=_parse_connection(data.get("connection", {})),
         filter=_parse_filter(data.get("filter", {})),
     )
