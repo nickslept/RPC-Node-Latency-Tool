@@ -8,7 +8,7 @@ import time
 from datetime import datetime, timezone
 
 from ..config import Config, NodeConfig
-from .connect import PreflightError, close_all, open_all
+from .connections import PreflightError, close_all, open_all
 from .disconnect_logger import DisconnectLogger
 from .listener import ListenerExit, run_listener
 from .processor import run_processor
