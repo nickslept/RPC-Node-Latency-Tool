@@ -120,10 +120,10 @@ def _label_line_ends(ax: plt.Axes, binned: pl.DataFrame, provider_colors: dict[s
     """
     ends = []
     for provider in provider_colors:
-        d = binned.filter(pl.col("provider") == provider).sort("t_min")
+        d = binned.filter(pl.col("provider") == provider).sort("bin_start_min")
         if d.is_empty():
             continue
-        ends.append((provider, d["t_min"][-1], d["median_ms"][-1]))
+        ends.append((provider, d["bin_start_min"][-1], d["median_ms"][-1]))
     if not ends:
         return
 
@@ -161,7 +161,7 @@ def save_median_over_run(
     fig, ax = _new_axes((12, 7))
     sns.lineplot(
         data=binned.to_pandas(),
-        x="t_min",
+        x="bin_start_min",
         y="median_ms",
         hue="provider",
         hue_order=list(provider_colors),
@@ -187,10 +187,10 @@ def save_percentile_bands(node_band: pl.DataFrame, provider: str, bin_seconds: i
     across the run. ``node_band`` must already be filtered to that provider's rows.
     """
     fig, ax = _new_axes((11, 5.5))
-    d = node_band.sort("t_min")
-    ax.fill_between(d["t_min"], d["p10"], d["p90"], color=_BAND_HUE, alpha=0.15, linewidth=0, label="p10–p90")
-    ax.fill_between(d["t_min"], d["p25"], d["p75"], color=_BAND_HUE, alpha=0.32, linewidth=0, label="p25–p75")
-    ax.plot(d["t_min"], d["p50"], color=_BAND_HUE, linewidth=2, solid_capstyle="round", label="median")
+    d = node_band.sort("bin_start_min")
+    ax.fill_between(d["bin_start_min"], d["p10"], d["p90"], color=_BAND_HUE, alpha=0.15, linewidth=0, label="p10–p90")
+    ax.fill_between(d["bin_start_min"], d["p25"], d["p75"], color=_BAND_HUE, alpha=0.32, linewidth=0, label="p25–p75")
+    ax.plot(d["bin_start_min"], d["p50"], color=_BAND_HUE, linewidth=2, solid_capstyle="round", label="median")
     _style_legend(ax.legend(loc="upper right"))
     _finish(
         fig,
