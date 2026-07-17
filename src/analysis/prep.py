@@ -42,23 +42,24 @@ def build_offset_dataframe(df: pl.DataFrame) -> pl.DataFrame:
     )
 
 
-def build_long_offsets(offset_frame: pl.DataFrame, providers: dict[str, str]) -> pl.DataFrame:
+def build_offset_dataframe_long(offset_frame: pl.DataFrame, providers: dict[str, str]) -> pl.DataFrame:
     """
-    Unpivots the offset frame to long form: one row per (transaction, provider) observation.
+    Takes in the offset dataframe & node_N to provider mapping and returns a new long form dataframe with the following column structure:
+    ``run_time_sec`` a float representing the elapsed time since run start for when the FASTEST provider reported the transaction.
+    ``provider`` a string representing the provider (e.g. "alchemy").
+    ``offset_ns`` an int representing the offset in nanoseconds from the fastest node for the transaction.
+    ``offset_ms`` an int representing the offset in milliseconds from the fastest node for the transaction.
 
-    The writer stores arrivals relative to start_ref_ns (see pipeline/writer.py), so the arrival
-    values are already "ns since run start" and t=0 is the actual recording start.
-
-    Returns columns: t_s (seconds since run start), provider, offset_ns, offset_ms.
+    **EACH NODE PROVIDER'S REPORT OF A TRANSACTION = 1 UNIQUE ROW. NULLS (node didn't report the transaction) ARE DROPPED.**
     """
     offset_cols = [col for col in offset_frame.columns if col.endswith("_offset_ns")]
     return (
-        offset_frame.with_columns((pl.col("min_arrival_ns") / 1e9).alias("t_s"))
-        .unpivot(on=offset_cols, index="t_s", variable_name="provider", value_name="offset_ns")
+        offset_frame.with_columns((pl.col("min_arrival_ns") / 1e9).alias("run_time_sec"))
+        .unpivot(on=offset_cols, index="run_time_sec", variable_name="provider", value_name="offset_ns") # 2 new cols: provider (currently node_N_offset_ns from the col names before) -> offset_ns
         .drop_nulls("offset_ns")
         .with_columns(
             (pl.col("offset_ns") / 1e6).alias("offset_ms"),
-            pl.col("provider").str.replace("_offset_ns", "").replace(providers),
+            pl.col("provider").str.replace("_offset_ns", "").replace(providers), # changes the strings in the provider col from node_N_offset_ns --> node_N and then swaps that with the actual name (e.g. alchemy)
         )
     )
 
@@ -67,7 +68,7 @@ def _with_time_bins(long: pl.DataFrame, bin_seconds: int) -> pl.DataFrame:
     """
     Adds a t_min column: each observation floored to its ``bin_seconds``-wide bin, expressed in minutes.
     """
-    return long.with_columns((pl.col("t_s") // bin_seconds * bin_seconds / 60).alias("t_min"))
+    return long.with_columns((pl.col("run_time_sec") // bin_seconds * bin_seconds / 60).alias("t_min"))
 
 
 def bin_median(long: pl.DataFrame, bin_seconds: int) -> pl.DataFrame:
