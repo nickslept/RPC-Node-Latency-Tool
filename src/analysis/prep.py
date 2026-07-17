@@ -4,17 +4,17 @@ import polars as pl
 
 from .. import schema
 
-# Place label for transactions a node never reported ("did not report").
+# Label for transactions that a node never reported on the rankings chart (DNR = "did not report").
 DNR_LABEL = "DNR"
 
 
-def provider_order(providers: dict[str, str]) -> list[str]:
+def get_provider_order(providers: dict[str, str]) -> list[str]:
     """
-    Returns the provider names ordered by node number (node_1's provider first).
+    Returns a list of Strings containing the provider names ordered by node number (node_1's provider 1st, node_2's provider 2nd, etc).
 
     ``providers`` is the metadata mapping of column prefix -> provider name (e.g. {"node_1": "alchemy"}).
     """
-    return [providers[key] for key in sorted(providers, key=lambda key: int(key.rsplit("_", 1)[1]))]
+    return [providers[f"node_{i}"] for i in range(1, len(providers) + 1)]
 
 
 def build_offset_frame(df: pl.DataFrame) -> pl.DataFrame:
