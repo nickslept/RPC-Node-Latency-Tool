@@ -17,13 +17,15 @@ def get_provider_order(providers: dict[str, str]) -> list[str]:
     return [providers[f"node_{i}"] for i in range(1, len(providers) + 1)]
 
 
-def build_offset_frame(df: pl.DataFrame) -> pl.DataFrame:
+def build_offset_dataframe(df: pl.DataFrame) -> pl.DataFrame:
     """
-    Converts each node's arrival column into an offset column: nanoseconds behind the fastest node
-    for that transaction (0 for the winner, null if the node never reported it).
+    Takes in the cleaned parquet file's dataframe and creates a new dataframe with the following changes:
+    ``tx_hash`` remains the same.
+    ``min_arrival_ns`` column created for the earliest arrival time in ns for a specific transaction.
+    All arrival time columns are converted into offsets from the fastest arrival time for a particular transaction.
+    The fastest node has an offset of 0. Null = the node didn't report the transaction.
 
-    Returns a frame with tx_hash, min_arrival_ns (earliest arrival across the nodes), and one
-    node_N_offset_ns column per node, sorted by min_arrival_ns.
+    Returns the dataframe described above, sorted by ``min_arrival_ns``.
     """
     arrival_cols = [col for col in df.columns if col != schema.TX_HASH_COLUMN]
     return (
