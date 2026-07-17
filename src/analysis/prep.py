@@ -1,7 +1,3 @@
-"""
-Dataframe transforms for the analyze command. No plotting happens here; charts.py consumes these frames.
-"""
-
 from __future__ import annotations
 
 import polars as pl
