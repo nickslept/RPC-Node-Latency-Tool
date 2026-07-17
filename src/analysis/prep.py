@@ -64,33 +64,36 @@ def build_offset_dataframe_long(offset_frame: pl.DataFrame, providers: dict[str,
     )
 
 
-def _with_time_bins(long: pl.DataFrame, bin_seconds: int) -> pl.DataFrame:
+def _add_time_bins(long: pl.DataFrame, bin_seconds: int) -> pl.DataFrame:
     """
-    Adds a t_min column: each observation floored to its ``bin_seconds``-wide bin, expressed in minutes.
+    Adds a ``bin_start_min`` (float) column to the long form offset dataframe.
+    
+    This column contains the start time of the ``bin_seconds`` sized bin each row falls in,
+    in minutes relative to the run's start. Rows in the same bin share the same value.
     """
-    return long.with_columns((pl.col("run_time_sec") // bin_seconds * bin_seconds / 60).alias("t_min"))
+    return long.with_columns((pl.col("run_time_sec") // bin_seconds * bin_seconds / 60).alias("bin_start_min"))
 
 
 def bin_median(long: pl.DataFrame, bin_seconds: int) -> pl.DataFrame:
     """
-    Returns the median offset_ms per (provider, time bin), sorted by bin. Columns: provider, t_min, median_ms.
+    Returns the median offset_ms per (provider, time bin), sorted by bin. Columns: provider, bin_start_min, median_ms.
     """
     return (
-        _with_time_bins(long, bin_seconds)
-        .group_by("provider", "t_min")
+        _add_time_bins(long, bin_seconds)
+        .group_by("provider", "bin_start_min")
         .agg(pl.col("offset_ms").median().alias("median_ms"))
-        .sort("t_min")
+        .sort("bin_start_min")
     )
 
 
 def bin_percentiles(long: pl.DataFrame, bin_seconds: int) -> pl.DataFrame:
     """
     Returns offset_ms percentiles per (provider, time bin), sorted by bin.
-    Columns: provider, t_min, p10, p25, p50, p75, p90.
+    Columns: provider, bin_start_min, p10, p25, p50, p75, p90.
     """
     return (
-        _with_time_bins(long, bin_seconds)
-        .group_by("provider", "t_min")
+        _add_time_bins(long, bin_seconds)
+        .group_by("provider", "bin_start_min")
         .agg(
             pl.col("offset_ms").quantile(0.10).alias("p10"),
             pl.col("offset_ms").quantile(0.25).alias("p25"),
@@ -98,7 +101,7 @@ def bin_percentiles(long: pl.DataFrame, bin_seconds: int) -> pl.DataFrame:
             pl.col("offset_ms").quantile(0.75).alias("p75"),
             pl.col("offset_ms").quantile(0.90).alias("p90"),
         )
-        .sort("t_min")
+        .sort("bin_start_min")
     )
 
 
