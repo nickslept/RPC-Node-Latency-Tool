@@ -76,7 +76,11 @@ def _add_time_bins(long: pl.DataFrame, bin_seconds: int) -> pl.DataFrame:
 
 def bin_median(long: pl.DataFrame, bin_seconds: int) -> pl.DataFrame:
     """
-    Returns the median offset_ms per (provider, time bin), sorted by bin. Columns: provider, bin_start_min, median_ms.
+    Takes in a long form offset dataframe and the bin time (in seconds) and returns a dataframe with the following column structure:
+
+    - ``provider`` a string representing the provider (e.g. "alchemy").
+    - ``bin_start_min`` a float containing the starttime of the ``bin_seconds`` sized bin each row falls in, in minutes relative to the run's start.
+    - ``median_ms`` a float representing the median offset in milliseconds per node provider within each bin.
     """
     return (
         _add_time_bins(long, bin_seconds)
