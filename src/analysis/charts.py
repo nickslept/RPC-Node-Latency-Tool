@@ -22,7 +22,7 @@ _BASELINE = "#c3c2b7"
 _CATEGORICAL = ["#2a78d6", "#1baf7a", "#eda100", "#008300", "#4a3aa7", "#e34948", "#e87ba4", "#eb6834"]
 
 # Ordinal blue ramp for finishing places: place 1 (fastest) = darkest. Gray = did not report.
-_PLACE_RAMP = ["#0d366b", "#1c5cab", "#2a78d6", "#5598e7", "#86b6ef"]
+_PLACE_RAMP = ["#132A13", "#31572C", "#4F772D", "#90A955", "#C6CE72", "#A4A4A4"]
 _DNR_COLOR = "#898781"
 
 # Single hue for the per-provider percentile-band figures (the title carries the provider name).
