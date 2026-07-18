@@ -18,8 +18,8 @@ _INK_MUTED = "#898781"
 _GRID = "#e1e0d9"
 _BASELINE = "#c3c2b7"
 
-# Categorical palette, fixed slot order (the order itself is what keeps adjacent hues CVD-distinct).
-_CATEGORICAL = ["#2a78d6", "#1baf7a", "#eda100", "#008300", "#4a3aa7", "#e34948", "#e87ba4", "#eb6834"]
+# one color in _PROVIDER_PALETTE is assigned per node provider
+_PROVIDER_PALETTE = ["#2a78d6", "#1baf7a", "#eda100", "#008300", "#4a3aa7", "#e34948", "#e87ba4", "#eb6834"]
 
 # Ordinal blue ramp for finishing places: place 1 (fastest) = darkest. Gray = did not report.
 _PLACE_RAMP = ["#132A13", "#31572C", "#4F772D", "#90A955", "#C6CE72", "#A4A4A4"]
@@ -29,14 +29,15 @@ _DNR_COLOR = "#898781"
 _BAND_HUE = "#2a78d6"
 
 
-def assign_provider_colors(ordered_providers: list[str]) -> dict[str, str]:
+def build_provider_color_map(ordered_providers: list[str]) -> dict[str, str]:
     """
-    Maps each provider to a fixed categorical color by its node-number position.
-    The returned dict's iteration order doubles as the display order for every chart.
+    Takes in a list of ordered providers and assigns each provider to a fixed color.
+
+    Returns a dictionary with the provider (e.g. alchemy) as the key, and a color from ``_PROVIDER_PALETTE`` as the value.
     """
-    if len(ordered_providers) > len(_CATEGORICAL):
-        raise ValueError(f"Palette supports at most {len(_CATEGORICAL)} providers, got {len(ordered_providers)}")
-    return {provider: _CATEGORICAL[i] for i, provider in enumerate(ordered_providers)}
+    if len(ordered_providers) > len(_PROVIDER_PALETTE):
+        raise ValueError(f"Palette supports at most {len(_PROVIDER_PALETTE)} providers, got {len(ordered_providers)}. Edit _PROVIDER_PALETTE in charts.py to add more custom colors.")
+    return {provider: _PROVIDER_PALETTE[i] for i, provider in enumerate(ordered_providers)}
 
 
 def _new_axes(figsize: tuple[float, float]) -> tuple[plt.Figure, plt.Axes]:
