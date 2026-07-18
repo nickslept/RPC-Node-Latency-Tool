@@ -59,7 +59,7 @@ def run_analysis(input_path: str, results_dir: str) -> int:
     """
     bin_seconds = _prompt_bin_size()
     if bin_seconds is None:
-        print("[ERROR] No bin width selected.")
+        print("[ERROR] No bin size selected.")
         return 1
 
     try:
@@ -77,10 +77,10 @@ def run_analysis(input_path: str, results_dir: str) -> int:
     output_dir = _generate_analysis_dir(input_path, results_dir)
     os.makedirs(output_dir, exist_ok=True)
 
-    ordered_providers = prep.provider_order(providers)
+    ordered_providers = prep.get_provider_order(providers)
     provider_colors = charts.assign_provider_colors(ordered_providers)
-    offset_frame = prep.build_offset_frame(df)
-    long = prep.build_long_offsets(offset_frame, providers)
+    offset_frame = prep.build_offset_dataframe(df)
+    long = prep.build_offset_dataframe_long(offset_frame, providers)
 
     saved: list[str] = []
 
