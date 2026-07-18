@@ -79,7 +79,7 @@ def bin_median(long: pl.DataFrame, bin_seconds: int) -> pl.DataFrame:
     Takes in a long form offset dataframe and the bin time (in seconds) and returns a dataframe with the following column structure:
 
     - ``provider`` a string representing the provider (e.g. "alchemy").
-    - ``bin_start_min`` a float containing the starttime of the ``bin_seconds`` sized bin each row falls in, in minutes relative to the run's start.
+    - ``bin_start_min`` a float containing the start time of the ``bin_seconds`` sized bin each row falls in, in minutes relative to the run's start.
     - ``median_ms`` a float representing the median offset in milliseconds per node provider within each bin.
     """
     return (
@@ -92,8 +92,12 @@ def bin_median(long: pl.DataFrame, bin_seconds: int) -> pl.DataFrame:
 
 def bin_percentiles(long: pl.DataFrame, bin_seconds: int) -> pl.DataFrame:
     """
-    Returns offset_ms percentiles per (provider, time bin), sorted by bin.
-    Columns: provider, bin_start_min, p10, p25, p50, p75, p90.
+    Takes in a long form offset dataframe and the bin time (in seconds) and returns a dataframe with the following column structure:
+
+    - ``provider`` a string representing the provider (e.g. "alchemy").
+    - ``bin_start_min`` a float containing the start time of the ``bin_seconds`` sized bin each row falls in, in minutes relative to the run's start.
+    - ``p10``, ``p25``, ``p50``, ``p75``, ``p90`` are all floats representing the corresponding percentile offset in milliseconds per node provider within each bin.
+        - e.g. p10 means that 10% of the data within the time bin for the node provider lies below that float.
     """
     return (
         _add_time_bins(long, bin_seconds)
