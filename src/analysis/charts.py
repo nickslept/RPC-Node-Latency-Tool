@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import matplotlib
-
-matplotlib.use("Agg")  # render straight to files, no GUI backend needed
-
-import matplotlib.pyplot as plt
 import polars as pl
 import seaborn as sns
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+from matplotlib.legend import Legend
 
 from .prep import DNR_LABEL
 
@@ -18,7 +18,7 @@ _INK_MUTED = "#898781"
 _GRID = "#e1e0d9"
 _BASELINE = "#c3c2b7"
 
-# one color in _PROVIDER_PALETTE is assigned per node provider
+# each node provider is assigned a unique color in _PROVIDER_PALETTE
 _PROVIDER_PALETTE = ["#2a78d6", "#1baf7a", "#eda100", "#008300", "#4a3aa7", "#e34948", "#e87ba4", "#eb6834"]
 
 # Ordinal blue ramp for finishing places: place 1 (fastest) = darkest. Gray = did not report.
@@ -54,7 +54,7 @@ def _new_axes(figsize: tuple[float, float]) -> tuple[plt.Figure, plt.Axes]:
     return fig, ax
 
 
-def _style_legend(legend: plt.legend, title: str | None = None) -> None:
+def _style_legend(legend: Legend | None, title: str | None = None) -> None:
     if legend is None:
         return
     legend.set_frame_on(False)
