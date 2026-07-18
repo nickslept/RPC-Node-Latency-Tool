@@ -99,7 +99,7 @@ def run_analysis(input_path: str, results_dir: str) -> int:
         saved.append(path)
 
     path = os.path.join(output_dir, "finishing_places.png")
-    charts.save_finishing_places(prep.build_place_share(df, providers), provider_colors, path)
+    charts.save_finishing_places(prep.build_place_share_dataframe(df, providers), provider_colors, path)
     saved.append(path)
 
     print(f"[INFO] Analyzed {df.height:,} transactions across {len(ordered_providers)} providers.")
