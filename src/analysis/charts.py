@@ -1,10 +1,3 @@
-"""
-Chart savers for the analyze command. Each public function renders one picture and writes it to disk.
-
-Every provider keeps the same color in every chart (assigned by node number via assign_provider_colors).
-The palette was validated for colorblind-safe adjacent separation on the light surface.
-"""
-
 from __future__ import annotations
 
 import matplotlib
