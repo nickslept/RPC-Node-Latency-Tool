@@ -113,39 +113,42 @@ def bin_percentiles(long: pl.DataFrame, bin_seconds: int) -> pl.DataFrame:
     )
 
 
-def build_place_share(df: pl.DataFrame, providers: dict[str, str]) -> pl.DataFrame:
+def build_place_share_dataframe(df: pl.DataFrame, providers: dict[str, str]) -> pl.DataFrame:
     """
-    For each transaction, ranks the nodes that reported it by arrival time (place 1 = fastest,
-    ties share a place via rank "min"). A null arrival means the node did not report that
-    transaction and is labeled ``DNR_LABEL``.
+    Takes in the cleaned parquet file's dataframe and creates a new dataframe with the following column layout:
 
-    Returns one row per provider with each place's share of ALL transactions (a provider's row
-    sums to 1.0). Columns: provider, "1", ..., "N", DNR — every label present even when its
-    share is 0, so chart code can rely on the full set.
+    - ``provider``: A string containing the provider's name
+    
+    - ``1`` ... ``N`` : A float representing the fraction of ALL transactions in the run where the provider's report 
+    arrived in that place (``1`` = fastest node to report the transaction). 
+    
+    - ``DNR_LABEL``: A float representing the fraction of ALL transactions in the run where the provider did not report
+    the transaction. This column takes on the name of whatever ``DNR_LABEL`` is actually set to. Default = "DNR".
     """
     arrival_cols = [col for col in df.columns if col != schema.TX_HASH_COLUMN]
     place_labels = [str(place) for place in range(1, len(arrival_cols) + 1)] + [DNR_LABEL]
 
     places = (
-        df.unpivot(on=arrival_cols, index=schema.TX_HASH_COLUMN, variable_name="provider", value_name="arrival_ns")
-        .with_columns(pl.col("provider").str.replace("_arrival_ns", "").replace(providers))
+        df.unpivot(on=arrival_cols, index=schema.TX_HASH_COLUMN, variable_name="provider", value_name="arrival_ns") # 3 cols remaining: tx_hash, provider, arrival_ns
+        .with_columns(pl.col("provider").str.replace("_arrival_ns", "").replace(providers)) # replaces the strings in the provider col from node_N_offset_ns --> node_N and then swaps that with the actual name (e.g. alchemy)
         .with_columns(
-            pl.col("arrival_ns").rank("min").over(schema.TX_HASH_COLUMN).cast(pl.Int32).alias("place")
+            pl.col("arrival_ns").rank("min").over(schema.TX_HASH_COLUMN).cast(pl.Int32).alias("place") # adds a place column (int32) which assigns a speed-based rank to each node provider within each tx_hash. ties are dealt w/ automatically.
         )
     )
 
     share = (
         places.group_by("provider", "place")
-        .len()
+        .len() # adds a len column which just counts how many times a certain place showed up in the data
         .with_columns(
-            pl.col("place").cast(pl.Utf8).fill_null(DNR_LABEL).alias("place_label"),
-            (pl.col("len") / df.height).alias("share"),
-        )
-        .pivot(values="share", index="provider", on="place_label")
-        .fill_null(0.0)
+            pl.col("place").cast(pl.Utf8).fill_null(DNR_LABEL).alias("place_label"), #adds a place_label column which is just the place column but everything is converted to a string, and nulls take on DNR_LABEL
+            (pl.col("len") / df.height).alias("share"), #adds a fraction of ALL transactions where a provider finished in a specific place column (float)
+        ) 
+        .pivot(values="share", index="provider", on="place_label") #converts the table into a provider column, 1-max place, and DNR_LABEL column in which all the values are the cumulative share of place among all transactions
+        .fill_null(0.0) #changes nulls (e.g. a node always reported and therefore has NO share of DNR_LABEL) to 0.0
     )
-    # pivot only creates columns for places that actually occurred; guarantee the full set
+    
+    # ensures that missing columns are handled (e.g. none of the nodes were ever in 4th place)
     missing = [label for label in place_labels if label not in share.columns]
     if missing:
-        share = share.with_columns(pl.lit(0.0).alias(label) for label in missing)
-    return share.select("provider", *place_labels)
+        share = share.with_columns(pl.lit(0.0).alias(label) for label in missing) #adds the missing column and assigns the value 0.0 for all the node providers
+    return share.select("provider", *place_labels) #returned in proper order
