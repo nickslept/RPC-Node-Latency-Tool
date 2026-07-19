@@ -42,7 +42,7 @@ def build_provider_color_map(ordered_providers: list[str]) -> dict[str, str]:
 
 def _build_figure(figsize: tuple[float, float]) -> tuple[plt.Figure, plt.Axes]:
     """
-    Creates a new figure and axes given image dimensions. The following styling is applied:
+    Creates a new figure and axes given figure dimensions. The following styling is applied:
 
     - ``_SURFACE`` color for the background
     - ``_BASELINE`` color for the x and y axis
@@ -65,7 +65,17 @@ def _build_figure(figsize: tuple[float, float]) -> tuple[plt.Figure, plt.Axes]:
     return fig, ax
 
 
-def _style_legend(legend: Legend | None, title: str | None = None) -> None:
+def _restyle_legend(legend: Legend | None, title: str | None = None) -> None:
+    """ 
+    Restyles an existing legend. The following styling is applied:
+
+    - The box/lines around a legend is removed
+    - ``title`` is set to the legend title
+    - ``_INK_SECONDARY`` is set to the legend title color, with a font size of 9
+    - ``_INK_SECONDARY`` is set to the legend text/labels color, with a font size of 9
+
+    Returns ``None`` and does nothing if ``Legend`` is ``None``
+    """
     if legend is None:
         return
     legend.set_frame_on(False)
@@ -136,7 +146,7 @@ def save_median_over_run(
         linewidth=2,
         ax=ax,
     )
-    _style_legend(ax.get_legend())
+    _restyle_legend(ax.get_legend())
     _finish(
         fig,
         ax,
@@ -157,7 +167,7 @@ def save_percentile_bands(node_band: pl.DataFrame, provider: str, bin_seconds: i
     ax.fill_between(d["bin_start_min"], d["p10"], d["p90"], color=_BAND_HUE, alpha=0.15, linewidth=0, label="p10–p90")
     ax.fill_between(d["bin_start_min"], d["p25"], d["p75"], color=_BAND_HUE, alpha=0.32, linewidth=0, label="p25–p75")
     ax.plot(d["bin_start_min"], d["p50"], color=_BAND_HUE, linewidth=2, solid_capstyle="round", label="median")
-    _style_legend(ax.legend(loc="upper right"))
+    _restyle_legend(ax.legend(loc="upper right"))
     _finish(
         fig,
         ax,
@@ -184,7 +194,7 @@ def save_finishing_places(place_share: pl.DataFrame, provider_colors: dict[str, 
     pdf.plot(kind="bar", stacked=True, color=colors, width=0.55, edgecolor=_SURFACE, linewidth=1, ax=ax)
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f"{y:.0%}"))
     ax.tick_params(axis="x", rotation=0)
-    _style_legend(ax.legend(bbox_to_anchor=(1.02, 0.5), loc="center left"), title="Place")
+    _restyle_legend(ax.legend(bbox_to_anchor=(1.02, 0.5), loc="center left"), title="Place")
     _finish(
         fig,
         ax,
