@@ -81,7 +81,8 @@ def run_analysis(input_path: str, results_dir: str) -> int:
     try:
         provider_colors = charts.build_provider_color_map(ordered_providers)
     except ValueError as exc:
-        return 1 #already prints within build_provider_color_map
+        print(exc)
+        return 1
     offset_frame = prep.build_offset_dataframe(df)
     long = prep.build_offset_dataframe_long(offset_frame, providers)
 
