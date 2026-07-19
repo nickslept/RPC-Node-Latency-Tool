@@ -107,10 +107,19 @@ def _label_and_save(fig: plt.Figure, ax: plt.Axes, *, title: str, xlabel: str, y
     plt.close(fig)
 
 
-def generate_and_save_latency_boxplot(long: pl.DataFrame, provider_colors: dict[str, str], out_path: str) -> None:
+def generate_and_save_delay_boxplot(long: pl.DataFrame, provider_colors: dict[str, str], out_path: str) -> None:
     """
-    One picture for all providers: the distribution of each provider's latency behind the fastest
-    node, as a box plot (fliers hidden so the boxes stay readable).
+    Takes in a long formatted offset dataframe and a mapping of node provider to colors dict. 
+    Generates and saves a box plot of every provider's delay behind the fastest node. 
+    The plot is shaped by the following:
+
+    - One box per provider, placed vertically in ``provider_colors`` order and filled with each provider's corresponding color
+    - ``.boxplot()`` converts the x axis into categorical labels; the numeric tick values are dropped and replaced
+      with the provider names, so no x axis label or legend is needed
+    - The y axis plots the ``offset_ms`` column, so each box shows the distribution of that provider's delay in ms
+    - Fliers (outlier dots beyond the whiskers) are hidden so the boxes remain readable
+
+    Returns ``None``. Saves the finished chart to ``out_path``.
     """
     fig, ax = _build_figure((12, 7))
     order = list(provider_colors)
@@ -119,21 +128,21 @@ def generate_and_save_latency_boxplot(long: pl.DataFrame, provider_colors: dict[
         x="provider",
         y="offset_ms",
         order=order,
-        hue="provider",
-        hue_order=order,
-        palette=provider_colors,
+        hue="provider", # column name in long
+        hue_order=order, # list of categorical variables (provider names)
+        palette=provider_colors, # dict with provider keys & color values
         legend=False,
         showfliers=False,
         width=0.5,
-        linewidth=1.2,
+        linewidth=1.25,
         ax=ax,
     )
     _label_and_save(
         fig,
         ax,
-        title="Per-provider latency distribution",
+        title="Distribution of delay behind fastest node, by provider",
         xlabel="",
-        ylabel="Latency behind fastest node (ms)",
+        ylabel="Delay behind fastest node (ms)",
         out_path=out_path,
     )
 
