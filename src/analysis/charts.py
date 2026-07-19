@@ -88,7 +88,17 @@ def _restyle_legend(legend: Legend | None, title: str | None = None) -> None:
         text.set_fontsize(9)
 
 
-def _finish(fig: plt.Figure, ax: plt.Axes, *, title: str, xlabel: str, ylabel: str, out_path: str) -> None:
+def _label_and_save(fig: plt.Figure, ax: plt.Axes, *, title: str, xlabel: str, ylabel: str, out_path: str) -> None:
+    """
+    Labels a finished chart and saves it as an image. The following styling is applied:
+
+    - ``title`` is set as the chart title, left-aligned, in ``_INK`` color with a font size of 13
+    - ``xlabel``/``ylabel`` are set as the axis labels in ``_INK_SECONDARY`` color with a font size of 10
+    - Margins are auto-adjusted so nothing gets clipped
+
+    Saves the figure to ``out_path`` at 150 DPI (keeping the ``_SURFACE`` background color), then
+    closes it to free memory.
+    """
     ax.set_title(title, color=_INK, fontsize=13, pad=12, loc="left")
     ax.set_xlabel(xlabel, color=_INK_SECONDARY, fontsize=10)
     ax.set_ylabel(ylabel, color=_INK_SECONDARY, fontsize=10)
@@ -118,7 +128,7 @@ def save_latency_boxplot(long: pl.DataFrame, provider_colors: dict[str, str], ou
         linewidth=1.2,
         ax=ax,
     )
-    _finish(
+    _label_and_save(
         fig,
         ax,
         title="Per-provider latency distribution",
@@ -147,7 +157,7 @@ def save_median_over_run(
         ax=ax,
     )
     _restyle_legend(ax.get_legend())
-    _finish(
+    _label_and_save(
         fig,
         ax,
         title=f"Median latency behind fastest node over the run ({bin_seconds}s bins)",
@@ -168,7 +178,7 @@ def save_percentile_bands(node_band: pl.DataFrame, provider: str, bin_seconds: i
     ax.fill_between(d["bin_start_min"], d["p25"], d["p75"], color=_BAND_HUE, alpha=0.32, linewidth=0, label="p25–p75")
     ax.plot(d["bin_start_min"], d["p50"], color=_BAND_HUE, linewidth=2, solid_capstyle="round", label="median")
     _restyle_legend(ax.legend(loc="upper right"))
-    _finish(
+    _label_and_save(
         fig,
         ax,
         title=f"{provider}: latency percentiles over the run ({bin_seconds}s bins)",
@@ -195,7 +205,7 @@ def save_finishing_places(place_share: pl.DataFrame, provider_colors: dict[str, 
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f"{y:.0%}"))
     ax.tick_params(axis="x", rotation=0)
     _restyle_legend(ax.legend(bbox_to_anchor=(1.02, 0.5), loc="center left"), title="Place")
-    _finish(
+    _label_and_save(
         fig,
         ax,
         title="Finishing place per transaction, by provider",
