@@ -119,44 +119,6 @@ def save_latency_boxplot(long: pl.DataFrame, provider_colors: dict[str, str], ou
     )
 
 
-def _label_line_ends(ax: plt.Axes, binned: pl.DataFrame, provider_colors: dict[str, str]) -> None:
-    """
-    Direct-labels each line at its final point, nudging colliding labels apart with a thin
-    leader line back to the line end. Relief for hues that sit low-contrast on the surface.
-    """
-    ends = []
-    for provider in provider_colors:
-        d = binned.filter(pl.col("provider") == provider).sort("bin_start_min")
-        if d.is_empty():
-            continue
-        ends.append((provider, d["bin_start_min"][-1], d["median_ms"][-1]))
-    if not ends:
-        return
-
-    y_low, y_high = ax.get_ylim()
-    min_gap = (y_high - y_low) * 0.045
-    ends.sort(key=lambda end: end[2])
-    label_ys: list[float] = []
-    for _, _, y in ends:
-        if label_ys and y - label_ys[-1] < min_gap:
-            y = label_ys[-1] + min_gap
-        label_ys.append(y)
-
-    x_low, x_high = ax.get_xlim()
-    pad = (x_high - x_low) * 0.015
-    for (provider, x_end, y_end), y_label in zip(ends, label_ys):
-        ax.annotate(
-            provider,
-            xy=(x_end, y_end),
-            xytext=(x_high + pad, y_label),
-            color=_INK_SECONDARY,
-            fontsize=9,
-            va="center",
-            arrowprops={"arrowstyle": "-", "color": _BASELINE, "linewidth": 0.8},
-        )
-    ax.set_xlim(x_low, x_high + (x_high - x_low) * 0.13)
-
-
 def save_median_over_run(
     binned: pl.DataFrame, bin_seconds: int, provider_colors: dict[str, str], out_path: str
 ) -> None:
@@ -176,7 +138,6 @@ def save_median_over_run(
         ax=ax,
     )
     _style_legend(ax.get_legend())
-    _label_line_ends(ax, binned, provider_colors)
     _finish(
         fig,
         ax,
