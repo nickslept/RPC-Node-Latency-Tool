@@ -41,12 +41,23 @@ def build_provider_color_map(ordered_providers: list[str]) -> dict[str, str]:
     return {provider: _PROVIDER_PALETTE[i] for i, provider in enumerate(ordered_providers)}
 
 
-def _new_axes(figsize: tuple[float, float]) -> tuple[plt.Figure, plt.Axes]:
+def _build_figure(figsize: tuple[float, float]) -> tuple[plt.Figure, plt.Axes]:
+    """
+    Creates a new figure and axes given image dimensions. The following styling is applied:
+
+    - ``_SURFACE`` color for the background
+    - ``_BASELINE`` color for the x and y axis
+    - ``_GRID`` horizontal gridline color. Gridlines appear BEHIND the data
+    - ``_INK_MUTED`` tick line color
+    - ``_INK_SECONDARY`` value label color
+    
+    Returns a ``(figure, axes)`` pair to plot data on. 
+    """
     fig, ax = plt.subplots(figsize=figsize)
     fig.set_facecolor(_SURFACE)
     ax.set_facecolor(_SURFACE)
     ax.grid(True, axis="y", color=_GRID, linewidth=1)
-    ax.set_axisbelow(True)
+    ax.set_axisbelow(True) # gridlines are drawn behind the data
     for side in ("top", "right"):
         ax.spines[side].set_visible(False)
     for side in ("left", "bottom"):
@@ -82,7 +93,7 @@ def save_latency_boxplot(long: pl.DataFrame, provider_colors: dict[str, str], ou
     One picture for all providers: the distribution of each provider's latency behind the fastest
     node, as a box plot (fliers hidden so the boxes stay readable).
     """
-    fig, ax = _new_axes((12, 7))
+    fig, ax = _build_figure((12, 7))
     order = list(provider_colors)
     sns.boxplot(
         data=long.to_pandas(),
@@ -153,7 +164,7 @@ def save_median_over_run(
     One picture for all providers: each provider's binned median latency behind the fastest node
     across the run.
     """
-    fig, ax = _new_axes((12, 7))
+    fig, ax = _build_figure((12, 7))
     sns.lineplot(
         data=binned.to_pandas(),
         x="bin_start_min",
@@ -181,7 +192,7 @@ def save_percentile_bands(node_band: pl.DataFrame, provider: str, bin_seconds: i
     One picture for ONE provider: binned p10-p90 and p25-p75 bands around the median latency
     across the run. ``node_band`` must already be filtered to that provider's rows.
     """
-    fig, ax = _new_axes((11, 5.5))
+    fig, ax = _build_figure((11, 5.5))
     d = node_band.sort("bin_start_min")
     ax.fill_between(d["bin_start_min"], d["p10"], d["p90"], color=_BAND_HUE, alpha=0.15, linewidth=0, label="p10–p90")
     ax.fill_between(d["bin_start_min"], d["p25"], d["p75"], color=_BAND_HUE, alpha=0.32, linewidth=0, label="p25–p75")
@@ -209,7 +220,7 @@ def save_finishing_places(place_share: pl.DataFrame, provider_colors: dict[str, 
     ]
     pdf = place_share.to_pandas().set_index("provider").reindex(list(provider_colors))[labels]
 
-    fig, ax = _new_axes((10, 6))
+    fig, ax = _build_figure((10, 6))
     pdf.plot(kind="bar", stacked=True, color=colors, width=0.55, edgecolor=_SURFACE, linewidth=1, ax=ax)
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f"{y:.0%}"))
     ax.tick_params(axis="x", rotation=0)
