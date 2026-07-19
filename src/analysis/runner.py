@@ -89,21 +89,21 @@ def run_analysis(input_path: str, results_dir: str) -> int:
     saved: list[str] = []
 
     path = os.path.join(output_dir, "latency_boxplot.png")
-    charts.save_latency_boxplot(long, provider_colors, path)
+    charts.generate_and_save_latency_boxplot(long, provider_colors, path)
     saved.append(path)
 
     path = os.path.join(output_dir, f"median_latency_over_run_{bin_seconds}s.png")
-    charts.save_median_over_run(prep.bin_median(long, bin_seconds), bin_seconds, provider_colors, path)
+    charts.generate_and_save_median_over_run(prep.bin_median(long, bin_seconds), bin_seconds, provider_colors, path)
     saved.append(path)
 
     band = prep.bin_percentiles(long, bin_seconds)
     for provider in ordered_providers:
         path = os.path.join(output_dir, f"percentiles_{_ensure_safe_filename(provider)}_{bin_seconds}s.png")
-        charts.save_percentile_bands(band.filter(pl.col("provider") == provider), provider, bin_seconds, path)
+        charts.generate_and_save_percentile_bands(band.filter(pl.col("provider") == provider), provider, bin_seconds, path)
         saved.append(path)
 
     path = os.path.join(output_dir, "finishing_places.png")
-    charts.save_finishing_places(prep.build_place_share_dataframe(df, providers), provider_colors, path)
+    charts.generate_and_save_finishing_places(prep.build_place_share_dataframe(df, providers), provider_colors, path)
     saved.append(path)
 
     print(f"[INFO] Analyzed {df.height:,} transactions across {len(ordered_providers)} providers.")

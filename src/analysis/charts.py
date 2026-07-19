@@ -107,7 +107,7 @@ def _label_and_save(fig: plt.Figure, ax: plt.Axes, *, title: str, xlabel: str, y
     plt.close(fig)
 
 
-def save_latency_boxplot(long: pl.DataFrame, provider_colors: dict[str, str], out_path: str) -> None:
+def generate_and_save_latency_boxplot(long: pl.DataFrame, provider_colors: dict[str, str], out_path: str) -> None:
     """
     One picture for all providers: the distribution of each provider's latency behind the fastest
     node, as a box plot (fliers hidden so the boxes stay readable).
@@ -138,7 +138,7 @@ def save_latency_boxplot(long: pl.DataFrame, provider_colors: dict[str, str], ou
     )
 
 
-def save_median_over_run(
+def generate_and_save_median_over_run(
     binned: pl.DataFrame, bin_seconds: int, provider_colors: dict[str, str], out_path: str
 ) -> None:
     """
@@ -167,7 +167,7 @@ def save_median_over_run(
     )
 
 
-def save_percentile_bands(node_band: pl.DataFrame, provider: str, bin_seconds: int, out_path: str) -> None:
+def generate_and_save_percentile_bands(node_band: pl.DataFrame, provider: str, bin_seconds: int, out_path: str) -> None:
     """
     One picture for ONE provider: binned p10-p90 and p25-p75 bands around the median latency
     across the run. ``node_band`` must already be filtered to that provider's rows.
@@ -188,7 +188,7 @@ def save_percentile_bands(node_band: pl.DataFrame, provider: str, bin_seconds: i
     )
 
 
-def save_finishing_places(place_share: pl.DataFrame, provider_colors: dict[str, str], out_path: str) -> None:
+def generate_and_save_finishing_places(place_share: pl.DataFrame, provider_colors: dict[str, str], out_path: str) -> None:
     """
     One picture for all providers: a stacked bar per provider segmented by finishing place
     (share of ALL transactions; place 1 = fastest, gray = did not report).
