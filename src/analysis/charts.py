@@ -33,7 +33,7 @@ def build_provider_color_map(ordered_providers: list[str]) -> dict[str, str]:
     Returns a dictionary with the provider (e.g. alchemy) as the key, and a color from ``_PROVIDER_PALETTE`` as the value.
     """
     if len(ordered_providers) > len(_PROVIDER_PALETTE):
-        raise ValueError(f"[ERROR] Palette supports at most {len(_PROVIDER_PALETTE)} providers, got {len(ordered_providers)}. Edit _PROVIDER_PALETTE in charts.py to add more custom colors.")
+        raise ValueError(f"Palette supports at most {len(_PROVIDER_PALETTE)} providers, got {len(ordered_providers)}. Edit _PROVIDER_PALETTE in charts.py to add more custom colors.")
     return {provider: _PROVIDER_PALETTE[i] for i, provider in enumerate(ordered_providers)}
 
 
