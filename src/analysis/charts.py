@@ -82,10 +82,10 @@ def _restyle_legend(legend: Legend | None, title: str | None = None) -> None:
     legend.set_title(title)
     if legend.get_title() is not None:
         legend.get_title().set_color(_INK_SECONDARY)
-        legend.get_title().set_fontsize(9)
+        legend.get_title().set_fontsize(12)
     for text in legend.get_texts():
         text.set_color(_INK_SECONDARY)
-        text.set_fontsize(9)
+        text.set_fontsize(10)
 
 
 def _label_and_save(fig: plt.Figure, ax: plt.Axes, *, title: str, xlabel: str, ylabel: str, out_path: str) -> None:
@@ -147,18 +147,25 @@ def generate_and_save_delay_boxplot(long: pl.DataFrame, provider_colors: dict[st
     )
 
 
-def generate_and_save_median_over_run(
+def generate_and_save_median_delay_lineplot_all_nodes(
     binned: pl.DataFrame, bin_seconds: int, provider_colors: dict[str, str], out_path: str
 ) -> None:
     """
-    One picture for all providers: each provider's binned median latency behind the fastest node
-    across the run.
+    Takes in a time-binned dataframe, the bin size in seconds, and a mapping of node provider to colors dict.
+    Generates and saves a line plot of every provider's median delay (in time bins) behind the fastest
+    node across the run. The plot is shaped by the following:
+
+    - One line per provider, colored by its corresponding color in ``provider_colors``
+    - The x axis plots ``bin_start_min`` (each bin's start time in minutes since the run began)
+    - The y axis plots the ``median_ms`` column, so each point is that provider's median delay in ms within the bin
+
+    Returns ``None``. Saves the finished chart to ``out_path``.
     """
     fig, ax = _build_figure((12, 7))
     sns.lineplot(
         data=binned.to_pandas(),
-        x="bin_start_min",
-        y="median_ms",
+        x="bin_start_min", #essentially like run start except based on bin time
+        y="median_ms", #delay behind fastest node
         hue="provider",
         hue_order=list(provider_colors),
         palette=provider_colors,
@@ -169,9 +176,9 @@ def generate_and_save_median_over_run(
     _label_and_save(
         fig,
         ax,
-        title=f"Median latency behind fastest node over the run ({bin_seconds}s bins)",
-        xlabel="Time since run start (minutes)",
-        ylabel="Median latency behind fastest node (ms)",
+        title=f"Median delay behind the fastest node, by provider ({bin_seconds}s bins)",
+        xlabel="Time since run start (min)",
+        ylabel="Median delay behind fastest node (ms)",
         out_path=out_path,
     )
 
