@@ -183,23 +183,32 @@ def generate_and_save_median_delay_lineplot_all_nodes(
     )
 
 
-def generate_and_save_percentile_bands(node_band: pl.DataFrame, provider: str, bin_seconds: int, out_path: str) -> None:
+def generate_and_save_delay_fan_chart(binned_percentiles: pl.DataFrame, provider: str, bin_seconds: int, out_path: str) -> None:
     """
-    One picture for ONE provider: binned p10-p90 and p25-p75 bands around the median latency
-    across the run. ``node_band`` must already be filtered to that provider's rows.
+    Takes in a time-binned percentile dataframe for ONE provider, the provider name, and the bin size in seconds.
+    Generates and saves a fan chart of that provider's delay behind the fastest node across
+    the run: a median line surrounded by two shaded percentile ranges. ``binned_percentiles`` must already be filtered to that provider's rows. The plot is shaped by
+    the following:
+
+    - The x axis plots ``bin_start_min`` (each bin's start time in minutes since the run began)
+    - The wider, lighter band fills ``p10``–``p90`` and the inner, darker band fills ``p25``–``p75``, so the
+      shaded regions show how spread out the delay is within each bin
+    - A solid line plots ``p50`` (the median delay) on top of the bands
+
+    Returns ``None``. Saves the finished chart to ``out_path``.
     """
-    fig, ax = _build_figure((11, 5.5))
-    d = node_band.sort("bin_start_min")
-    ax.fill_between(d["bin_start_min"], d["p10"], d["p90"], color=_BAND_HUE, alpha=0.15, linewidth=0, label="p10–p90")
+    fig, ax = _build_figure((12, 6))
+    d = binned_percentiles.sort("bin_start_min")
+    ax.fill_between(d["bin_start_min"], d["p10"], d["p90"], color=_BAND_HUE, alpha=0.16, linewidth=0, label="p10–p90")
     ax.fill_between(d["bin_start_min"], d["p25"], d["p75"], color=_BAND_HUE, alpha=0.32, linewidth=0, label="p25–p75")
     ax.plot(d["bin_start_min"], d["p50"], color=_BAND_HUE, linewidth=2, solid_capstyle="round", label="median")
-    _restyle_legend(ax.legend(loc="upper right"))
+    _restyle_legend(ax.legend())
     _label_and_save(
         fig,
         ax,
-        title=f"{provider}: latency percentiles over the run ({bin_seconds}s bins)",
-        xlabel="Time since run start (minutes)",
-        ylabel="Latency behind fastest node (ms)",
+        title=f"{provider}'s delay behind the fastest node, median and spread ({bin_seconds}s bins)",
+        xlabel="Time since run start (min)",
+        ylabel="Median delay behind fastest node (ms)",
         out_path=out_path,
     )
 
