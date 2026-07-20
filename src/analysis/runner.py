@@ -89,11 +89,11 @@ def run_analysis(input_path: str, results_dir: str) -> int:
     saved: list[str] = []
 
     path = os.path.join(output_dir, "latency_boxplot.png")
-    charts.generate_and_save_latency_boxplot(long, provider_colors, path)
+    charts.generate_and_save_delay_boxplot(long, provider_colors, path)
     saved.append(path)
 
     path = os.path.join(output_dir, f"median_latency_over_run_{bin_seconds}s.png")
-    charts.generate_and_save_median_over_run(prep.bin_median(long, bin_seconds), bin_seconds, provider_colors, path)
+    charts.generate_and_save_median_delay_lineplot_all_nodes(prep.bin_median(long, bin_seconds), bin_seconds, provider_colors, path)
     saved.append(path)
 
     band = prep.bin_percentiles(long, bin_seconds)
