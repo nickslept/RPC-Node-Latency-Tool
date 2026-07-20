@@ -26,7 +26,7 @@ _PLACE_RAMP = ["#132A13", "#31572C", "#4F772D", "#90A955", "#C6CE72", "#A4A4A4"]
 _DNR_COLOR = "#898781"
 
 # Single hue for the per-provider percentile-band figures (the title carries the provider name).
-_BAND_HUE = "#2a78d6"
+_FAN_CHART_HUE = "#2a78d6"
 
 
 def build_provider_color_map(ordered_providers: list[str]) -> dict[str, str]:
@@ -199,9 +199,9 @@ def generate_and_save_delay_fan_chart(binned_percentiles: pl.DataFrame, provider
     """
     fig, ax = _build_figure((12, 6))
     d = binned_percentiles.sort("bin_start_min")
-    ax.fill_between(d["bin_start_min"], d["p10"], d["p90"], color=_BAND_HUE, alpha=0.16, linewidth=0, label="p10–p90")
-    ax.fill_between(d["bin_start_min"], d["p25"], d["p75"], color=_BAND_HUE, alpha=0.32, linewidth=0, label="p25–p75")
-    ax.plot(d["bin_start_min"], d["p50"], color=_BAND_HUE, linewidth=2, solid_capstyle="round", label="median")
+    ax.fill_between(d["bin_start_min"], d["p10"], d["p90"], color=_FAN_CHART_HUE, alpha=0.16, linewidth=0, label="p10–p90")
+    ax.fill_between(d["bin_start_min"], d["p25"], d["p75"], color=_FAN_CHART_HUE, alpha=0.32, linewidth=0, label="p25–p75")
+    ax.plot(d["bin_start_min"], d["p50"], color=_FAN_CHART_HUE, linewidth=2, solid_capstyle="round", label="median")
     _restyle_legend(ax.legend())
     _label_and_save(
         fig,
