@@ -51,11 +51,11 @@ def _ensure_safe_filename(name: str) -> str:
 
 def run_analysis(input_path: str, results_dir: str) -> int:
     """
-    Analyzes the cleaned parquet file at ``input_path`` and saves the charts to a per-run folder
-    under ``results_dir``. Binned chart filenames carry the chosen bin width, so re-running with a
-    different width adds new pictures next to the old ones instead of overwriting them.
+    Analyzes the cleaned parquet file in ``input_path`` and saves the charts to a per-run analysis folder
+    under ``results_dir``. Binned chart filenames carry the chosen bin size, so re-running with a
+    different bin size adds new pictures to the folder.
 
-    Returns ``0`` on success, ``1`` if the user cancels or the file is unusable.
+    Returns ``0`` on success and ``1`` if the user cancels or there is an error.
     """
     bin_seconds = _prompt_bin_size()
     if bin_seconds is None:
@@ -81,32 +81,32 @@ def run_analysis(input_path: str, results_dir: str) -> int:
     try:
         provider_colors = charts.build_provider_color_map(ordered_providers)
     except ValueError as exc:
-        print(exc)
+        print(f"[ERROR]: {exc}")
         return 1
-    offset_frame = prep.build_offset_dataframe(df)
-    long = prep.build_offset_dataframe_long(offset_frame, providers)
+    offset_dataframe = prep.build_offset_dataframe(df)
+    offset_dataframe_long = prep.build_offset_dataframe_long(offset_dataframe, providers)
 
     saved: list[str] = []
 
-    path = os.path.join(output_dir, "latency_boxplot.png")
-    charts.generate_and_save_delay_boxplot(long, provider_colors, path)
+    path = os.path.join(output_dir, "delay_boxplot.png")
+    charts.generate_and_save_delay_boxplot(offset_dataframe_long, provider_colors, path)
     saved.append(path)
 
-    path = os.path.join(output_dir, f"median_latency_over_run_{bin_seconds}s.png")
-    charts.generate_and_save_median_delay_lineplot_all_nodes(prep.bin_median(long, bin_seconds), bin_seconds, provider_colors, path)
+    path = os.path.join(output_dir, f"median_delay_lineplot_all_nodes_binned_{bin_seconds}s.png")
+    charts.generate_and_save_median_delay_lineplot_all_nodes(prep.bin_median(offset_dataframe_long, bin_seconds), bin_seconds, provider_colors, path)
     saved.append(path)
 
-    band = prep.bin_percentiles(long, bin_seconds)
+    binned_percentiles_dataframe = prep.bin_percentiles(offset_dataframe_long, bin_seconds)
     for provider in ordered_providers:
-        path = os.path.join(output_dir, f"percentiles_{_ensure_safe_filename(provider)}_{bin_seconds}s.png")
-        charts.generate_and_save_delay_fan_chart(band.filter(pl.col("provider") == provider), provider, bin_seconds, path)
+        path = os.path.join(output_dir, f"delay_fan_chart_{_ensure_safe_filename(provider)}_binned_{bin_seconds}s.png")
+        charts.generate_and_save_delay_fan_chart(binned_percentiles_dataframe.filter(pl.col("provider") == provider), provider, bin_seconds, path)
         saved.append(path)
 
-    path = os.path.join(output_dir, "finishing_places.png")
-    charts.generate_and_save_finishing_places(prep.build_place_share_dataframe(df, providers), provider_colors, path)
+    path = os.path.join(output_dir, "speed_ranking_stacked_bar_chart_all_transactions.png")
+    charts.generate_and_save_speed_ranking_stacked_bar_chart_all_transactions(prep.build_place_share_dataframe(df, providers), provider_colors, path)
     saved.append(path)
 
-    print(f"[INFO] Analyzed {df.height:,} transactions across {len(ordered_providers)} providers.")
+    print(f"[SUMMARY] Analyzed {df.height:,} transactions across {len(ordered_providers)} providers.")
     for chart_path in saved:
-        print(f"[INFO] Saved: {chart_path}")
+        print(f"[SUMMARY] Saved: {chart_path}")
     return 0
