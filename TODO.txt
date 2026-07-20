@@ -2,8 +2,6 @@ FILE-SPECIFIC BUG FIXES/TODO:
 - in runner.py: re-review _install_signal_handlers()
 - in cli.py (build parser func) & in the repo desc: update grammar b/c it sounds like the tool analyzes the data itself rather than the timestamps of when it was read
 
-RENAMING:
-- prep -> smt more related to dataframes. keep in mind the first func isn't dataframe specific tho
 
 GENERAL TODO:
 - rankings charts:

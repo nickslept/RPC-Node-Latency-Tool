@@ -5,7 +5,7 @@ import os
 import polars as pl
 
 from .. import schema
-from . import charts, prep
+from . import charts, transform
 
 
 def _generate_analysis_dir(input_path: str, results_dir: str) -> str:
@@ -77,14 +77,14 @@ def run_analysis(input_path: str, results_dir: str) -> int:
     output_dir = _generate_analysis_dir(input_path, results_dir)
     os.makedirs(output_dir, exist_ok=True)
 
-    ordered_providers = prep.get_provider_order(providers)
+    ordered_providers = transform.get_provider_order(providers)
     try:
         provider_colors = charts.build_provider_color_map(ordered_providers)
     except ValueError as exc:
         print(f"[ERROR]: {exc}")
         return 1
-    offset_dataframe = prep.build_offset_dataframe(df)
-    offset_dataframe_long = prep.build_offset_dataframe_long(offset_dataframe, providers)
+    offset_dataframe = transform.build_offset_dataframe(df)
+    offset_dataframe_long = transform.build_offset_dataframe_long(offset_dataframe, providers)
 
     saved: list[str] = []
 
@@ -93,17 +93,17 @@ def run_analysis(input_path: str, results_dir: str) -> int:
     saved.append(path)
 
     path = os.path.join(output_dir, f"median_delay_lineplot_all_nodes_binned_{bin_seconds}s.png")
-    charts.generate_and_save_median_delay_lineplot_all_nodes(prep.bin_median(offset_dataframe_long, bin_seconds), bin_seconds, provider_colors, path)
+    charts.generate_and_save_median_delay_lineplot_all_nodes(transform.bin_median(offset_dataframe_long, bin_seconds), bin_seconds, provider_colors, path)
     saved.append(path)
 
-    binned_percentiles_dataframe = prep.bin_percentiles(offset_dataframe_long, bin_seconds)
+    binned_percentiles_dataframe = transform.bin_percentiles(offset_dataframe_long, bin_seconds)
     for provider in ordered_providers:
         path = os.path.join(output_dir, f"delay_fan_chart_{_ensure_safe_filename(provider)}_binned_{bin_seconds}s.png")
         charts.generate_and_save_delay_fan_chart(binned_percentiles_dataframe.filter(pl.col("provider") == provider), provider, bin_seconds, path)
         saved.append(path)
 
     path = os.path.join(output_dir, "speed_ranking_stacked_bar_chart_all_transactions.png")
-    charts.generate_and_save_speed_ranking_stacked_bar_chart_all_transactions(prep.build_place_share_dataframe(df, providers), provider_colors, path)
+    charts.generate_and_save_speed_ranking_stacked_bar_chart_all_transactions(transform.build_place_share_dataframe(df, providers), provider_colors, path)
     saved.append(path)
 
     print(f"[SUMMARY] Analyzed {df.height:,} transactions across {len(ordered_providers)} providers.")

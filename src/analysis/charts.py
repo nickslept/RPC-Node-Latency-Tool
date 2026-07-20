@@ -8,7 +8,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.legend import Legend
 
-from .prep import DNR_LABEL
+from .transform import DNR_LABEL
 
 # --- COLORS ---
 
