@@ -10,24 +10,21 @@ from matplotlib.legend import Legend
 
 from .prep import DNR_LABEL
 
-# Chart chrome
-_SURFACE = "#fcfcfb"
-_INK = "#0b0b0b"
-_INK_SECONDARY = "#52514e"
-_INK_MUTED = "#898781"
-_GRID = "#e1e0d9"
-_BASELINE = "#c3c2b7"
+# --- COLORS ---
 
-# each node provider is assigned a unique color in _PROVIDER_PALETTE
+_BACKGROUND_HUE = "#ffffff"
+_TEXT_PRIMARY_HUE = "#000000"
+_TEXT_SECONDARY_HUE = "#52514e"
+_TEXT_MUTED_HUE = "#898781"
+_GRIDLINE_HUE = "#e1e0d9"
+_AXIS_HUE = "#c3c2b7"
+
 _PROVIDER_PALETTE = ["#2a78d6", "#1baf7a", "#eda100", "#008300", "#4a3aa7", "#e34948", "#e87ba4", "#eb6834"]
-
-# Ordinal blue ramp for finishing places: place 1 (fastest) = darkest. Gray = did not report.
-_PLACEMENT_HUES = ["#132A13", "#31572C", "#4F772D", "#90A955", "#C6CE72", "#A4A4A4"]
+_PLACEMENT_PALETTE = ["#132A13", "#31572C", "#4F772D", "#90A955", "#C6CE72", "#A4A4A4"]
 _DNR_COLOR = "#898781"
-
-# Single hue for the per-provider percentile-band figures (the title carries the provider name).
 _FAN_CHART_HUE = "#2a78d6"
 
+# --- HELPERS ---
 
 def build_provider_color_map(ordered_providers: list[str]) -> dict[str, str]:
     """
@@ -44,24 +41,24 @@ def _build_figure(figsize: tuple[float, float]) -> tuple[plt.Figure, plt.Axes]:
     """
     Creates a new figure and axes given figure dimensions. The following styling is applied:
 
-    - ``_SURFACE`` color for the background
-    - ``_BASELINE`` color for the x and y axis
-    - ``_GRID`` horizontal gridline color. Gridlines appear BEHIND the data
-    - ``_INK_MUTED`` tick line color
-    - ``_INK_SECONDARY`` value label color
+    - ``_BACKGROUND_HUE`` color for the background
+    - ``_AXIS_HUE`` color for the x and y axis
+    - ``_GRIDLINE_HUE`` horizontal gridline color. Gridlines appear BEHIND the data
+    - ``_TEXT_MUTED_HUE`` tick line color
+    - ``_TEXT_SECONDARY_HUE`` value label color
     
     Returns a ``(figure, axes)`` pair to plot data on. 
     """
     fig, ax = plt.subplots(figsize=figsize)
-    fig.set_facecolor(_SURFACE)
-    ax.set_facecolor(_SURFACE)
-    ax.grid(True, axis="y", color=_GRID, linewidth=1)
+    fig.set_facecolor(_BACKGROUND_HUE)
+    ax.set_facecolor(_BACKGROUND_HUE)
+    ax.grid(True, axis="y", color=_GRIDLINE_HUE, linewidth=1)
     ax.set_axisbelow(True) # gridlines are drawn behind the data
     for side in ("top", "right"):
         ax.spines[side].set_visible(False)
     for side in ("left", "bottom"):
-        ax.spines[side].set_color(_BASELINE)
-    ax.tick_params(colors=_INK_MUTED, labelcolor=_INK_SECONDARY, labelsize=9)
+        ax.spines[side].set_color(_AXIS_HUE)
+    ax.tick_params(colors=_TEXT_MUTED_HUE, labelcolor=_TEXT_SECONDARY_HUE, labelsize=9)
     return fig, ax
 
 
@@ -71,8 +68,8 @@ def _restyle_legend(legend: Legend | None, title: str | None = None) -> None:
 
     - The box/lines around a legend is removed
     - ``title`` is set to the legend title
-    - ``_INK_SECONDARY`` is set to the legend title color, with a font size of 9
-    - ``_INK_SECONDARY`` is set to the legend text/labels color, with a font size of 9
+    - ``_TEXT_SECONDARY_HUE`` is set to the legend title color, with a font size of 9
+    - ``_TEXT_SECONDARY_HUE`` is set to the legend text/labels color, with a font size of 9
 
     Returns ``None`` and does nothing if ``Legend`` is ``None``
     """
@@ -81,10 +78,10 @@ def _restyle_legend(legend: Legend | None, title: str | None = None) -> None:
     legend.set_frame_on(False)
     legend.set_title(title)
     if legend.get_title() is not None:
-        legend.get_title().set_color(_INK_SECONDARY)
+        legend.get_title().set_color(_TEXT_SECONDARY_HUE)
         legend.get_title().set_fontsize(12)
     for text in legend.get_texts():
-        text.set_color(_INK_SECONDARY)
+        text.set_color(_TEXT_SECONDARY_HUE)
         text.set_fontsize(10)
 
 
@@ -92,20 +89,21 @@ def _label_and_save(fig: plt.Figure, ax: plt.Axes, *, title: str, xlabel: str, y
     """
     Labels a finished chart and saves it as an image. The following styling is applied:
 
-    - ``title`` is set as the chart title, left-aligned, in ``_INK`` color with a font size of 13
-    - ``xlabel``/``ylabel`` are set as the axis labels in ``_INK_SECONDARY`` color with a font size of 10
+    - ``title`` is set as the chart title, left-aligned, in ``_TEXT_PRIMARY_HUE`` color with a font size of 13
+    - ``xlabel``/``ylabel`` are set as the axis labels in ``_TEXT_SECONDARY_HUE`` color with a font size of 10
     - Margins are auto-adjusted so nothing gets clipped
 
-    Saves the figure to ``out_path`` at 150 DPI (keeping the ``_SURFACE`` background color), then
+    Saves the figure to ``out_path`` at 150 DPI (keeping the ``_BACKGROUND_HUE`` background color), then
     closes it to free memory.
     """
-    ax.set_title(title, color=_INK, fontsize=13, pad=12, loc="left")
-    ax.set_xlabel(xlabel, color=_INK_SECONDARY, fontsize=10)
-    ax.set_ylabel(ylabel, color=_INK_SECONDARY, fontsize=10)
+    ax.set_title(title, color=_TEXT_PRIMARY_HUE, fontsize=13, pad=12, loc="left")
+    ax.set_xlabel(xlabel, color=_TEXT_SECONDARY_HUE, fontsize=10)
+    ax.set_ylabel(ylabel, color=_TEXT_SECONDARY_HUE, fontsize=10)
     fig.tight_layout()
     fig.savefig(out_path, dpi=150, facecolor=fig.get_facecolor())
     plt.close(fig)
 
+# --- CHART GEN & SAVING ---
 
 def generate_and_save_delay_boxplot(long: pl.DataFrame, provider_colors: dict[str, str], out_path: str) -> None:
     """
@@ -220,7 +218,7 @@ def generate_and_save_speed_ranking_stacked_bar_chart_all_transactions(place_sha
     speed rank (rank 1 = fastest node to report a transaction). The plot is shaped by the following:
 
     - One stacked bar per provider, ordered along the x axis by ``provider_colors``
-    - Each segment is colored by rank via ``_PLACEMENT_HUES`` (rank 1 = darkest). The ``DNR_LABEL`` segment
+    - Each segment is colored by rank via ``_PLACEMENT_PALETTE`` (rank 1 = darkest). The ``DNR_LABEL`` segment
       (transactions the provider never reported) is filled with ``_DNR_COLOR``
     - The y axis plots the ``share`` values, so each bar sums to 1.0 (every transaction is either ranked or a DNR);
       tick labels are formatted as percentages
@@ -229,7 +227,7 @@ def generate_and_save_speed_ranking_stacked_bar_chart_all_transactions(place_sha
     """
     labels = [col for col in place_share.columns if col != "provider"]
     colors = [
-        _DNR_COLOR if label == DNR_LABEL else _PLACEMENT_HUES[min(int(label) - 1, len(_PLACEMENT_HUES) - 1)]
+        _DNR_COLOR if label == DNR_LABEL else _PLACEMENT_PALETTE[min(int(label) - 1, len(_PLACEMENT_PALETTE) - 1)]
         for label in labels
     ]
     pdf = place_share.to_pandas().set_index("provider").reindex(list(provider_colors))[labels]
