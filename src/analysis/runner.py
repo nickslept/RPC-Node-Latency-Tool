@@ -99,7 +99,7 @@ def run_analysis(input_path: str, results_dir: str) -> int:
     band = prep.bin_percentiles(long, bin_seconds)
     for provider in ordered_providers:
         path = os.path.join(output_dir, f"percentiles_{_ensure_safe_filename(provider)}_{bin_seconds}s.png")
-        charts.generate_and_save_percentile_bands(band.filter(pl.col("provider") == provider), provider, bin_seconds, path)
+        charts.generate_and_save_delay_fan_chart(band.filter(pl.col("provider") == provider), provider, bin_seconds, path)
         saved.append(path)
 
     path = os.path.join(output_dir, "finishing_places.png")
