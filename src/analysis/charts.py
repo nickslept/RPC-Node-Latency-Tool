@@ -22,7 +22,7 @@ _BASELINE = "#c3c2b7"
 _PROVIDER_PALETTE = ["#2a78d6", "#1baf7a", "#eda100", "#008300", "#4a3aa7", "#e34948", "#e87ba4", "#eb6834"]
 
 # Ordinal blue ramp for finishing places: place 1 (fastest) = darkest. Gray = did not report.
-_PLACE_RAMP = ["#132A13", "#31572C", "#4F772D", "#90A955", "#C6CE72", "#A4A4A4"]
+_PLACEMENT_HUES = ["#132A13", "#31572C", "#4F772D", "#90A955", "#C6CE72", "#A4A4A4"]
 _DNR_COLOR = "#898781"
 
 # Single hue for the per-provider percentile-band figures (the title carries the provider name).
@@ -213,28 +213,37 @@ def generate_and_save_delay_fan_chart(binned_percentiles: pl.DataFrame, provider
     )
 
 
-def generate_and_save_finishing_places(place_share: pl.DataFrame, provider_colors: dict[str, str], out_path: str) -> None:
+def generate_and_save_speed_ranking_stacked_bar_chart_all_transactions(place_share: pl.DataFrame, provider_colors: dict[str, str], out_path: str) -> None:
     """
-    One picture for all providers: a stacked bar per provider segmented by finishing place
-    (share of ALL transactions; place 1 = fastest, gray = did not report).
+    Takes in a place-share dataframe and a mapping of node provider to colors dict. 
+    Generates and saves a stacked bar chart showing the share of all transactions in which a provider reported in each 
+    speed rank (rank 1 = fastest node to report a transaction). The plot is shaped by the following:
+
+    - One stacked bar per provider, ordered along the x axis by ``provider_colors``
+    - Each segment is colored by rank via ``_PLACEMENT_HUES`` (rank 1 = darkest). The ``DNR_LABEL`` segment
+      (transactions the provider never reported) is filled with ``_DNR_COLOR``
+    - The y axis plots the ``share`` values, so each bar sums to 1.0 (every transaction is either ranked or a DNR);
+      tick labels are formatted as percentages
+
+    Returns ``None``. Saves the finished chart to ``out_path``.
     """
     labels = [col for col in place_share.columns if col != "provider"]
     colors = [
-        _DNR_COLOR if label == DNR_LABEL else _PLACE_RAMP[min(int(label) - 1, len(_PLACE_RAMP) - 1)]
+        _DNR_COLOR if label == DNR_LABEL else _PLACEMENT_HUES[min(int(label) - 1, len(_PLACEMENT_HUES) - 1)]
         for label in labels
     ]
     pdf = place_share.to_pandas().set_index("provider").reindex(list(provider_colors))[labels]
 
     fig, ax = _build_figure((10, 6))
-    pdf.plot(kind="bar", stacked=True, color=colors, width=0.55, edgecolor=_SURFACE, linewidth=1, ax=ax)
-    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f"{y:.0%}"))
-    ax.tick_params(axis="x", rotation=0)
-    _restyle_legend(ax.legend(bbox_to_anchor=(1.02, 0.5), loc="center left"), title="Place")
+    pdf.plot(kind="bar", stacked=True, color=colors, width=0.5, ax=ax)
+    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f"{y:.0%}")) #sets y-axis tick labels as percents instead of decimals
+    ax.tick_params(axis="x", rotation=0) # rotates names on x-axis to be readable
+    _restyle_legend(ax.legend(bbox_to_anchor=(1, .5), loc="center left"), title="Reporting speed rank\n(1=first to report a tx)")
     _label_and_save(
         fig,
         ax,
-        title="Finishing place per transaction, by provider",
-        xlabel="",
+        title="Reporting speed ranking across all transactions, by provider",
+        xlabel="Node provider",
         ylabel="Share of all transactions",
         out_path=out_path,
     )
