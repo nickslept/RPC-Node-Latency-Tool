@@ -139,7 +139,7 @@ def generate_and_save_delay_boxplot(long: pl.DataFrame, provider_colors: dict[st
         fig,
         ax,
         title="Distribution of delay behind fastest node, by provider",
-        xlabel="",
+        xlabel="Node provider",
         ylabel="Delay behind fastest node (ms)",
         out_path=out_path,
     )
