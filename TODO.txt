@@ -7,6 +7,6 @@ RENAMING:
 
 GENERAL TODO:
 - rankings charts:
-    - add rankings chart based on transactions where EVERY node reported
+    - add rankings chart based on transactions where EVERY node reported ("common transactions")
     - add quantities based chart for provider rankings/placements as an output to the analysis. would need to split build_place_share() into 2 different functions for this
 - modify pyproject.toml 
