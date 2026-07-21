@@ -1,12 +1,34 @@
 from __future__ import annotations
 
 import json
+import tomllib
 
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-# The number of RPC node providers being compared.
-NUM_NODES = 5
+# File that defines [[nodes]]
+_CONFIG_PATH = "config.toml"
+
+
+def _count_configured_nodes(config_path: str = _CONFIG_PATH) -> int:
+    """Counts the ``[[nodes]]`` entries in the TOML config.
+
+    Reads once so ``NUM_NODES`` matches however many providers are
+    listed in ``config.toml``. Returns 0 if the file is missing or unreadable; in
+    that case ``config.load_config`` raises the real, user-facing error when a run
+    is actually attempted.
+    """
+    try:
+        with open(config_path, "rb") as fh:
+            data = tomllib.load(fh)
+    except (OSError, tomllib.TOMLDecodeError):
+        return 0
+    nodes = data.get("nodes")
+    return len(nodes) if isinstance(nodes, list) else 0
+
+
+# The number of RPC node providers being compared (derived from config.toml).
+NUM_NODES = _count_configured_nodes()
 
 # Self-explanatory column name.
 TX_HASH_COLUMN = "tx_hash"
