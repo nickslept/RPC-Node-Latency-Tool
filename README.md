@@ -1,2 +1,2 @@
-# RPC-Node-Latency-Tool
+# polymarket-rpc-latency-bench
 temp

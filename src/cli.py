@@ -127,8 +127,8 @@ def _cmd_analyze(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="rpc-node-latency-tool",
-        description="A program that collects, cleans, and analyzes blockchain data from multiple RPC nodes for latency comparison.",
+        prog="polymarket-rpc-latency-bench",
+        description="A tool that collects, cleans, and analyzes latency data across Polygon RPC node providers for Polymarket trades.",
     )
     sub = parser.add_subparsers(dest="command")
 
