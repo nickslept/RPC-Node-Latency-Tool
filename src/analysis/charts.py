@@ -19,7 +19,7 @@ _TEXT_MUTED_HUE = "#898781"
 _GRIDLINE_HUE = "#e1e0d9"
 _AXIS_HUE = "#c3c2b7"
 
-_PROVIDER_PALETTE = ["#2a78d6", "#1baf7a", "#eda100", "#008300", "#4a3aa7", "#e34948", "#e87ba4", "#eb6834"]
+_PROVIDER_PALETTE = ["#2a78d6", "#1baf7a", "#eda100", "#008300", "#4a3aa7"]
 _PLACEMENT_PALETTE = ["#132A13", "#31572C", "#4F772D", "#90A955", "#C6CE72", "#A4A4A4"]
 _DNR_COLOR = "#898781"
 _FAN_CHART_HUE = "#2a78d6"
