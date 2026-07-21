@@ -105,10 +105,17 @@ def _label_and_save(fig: plt.Figure, ax: plt.Axes, *, title: str, xlabel: str, y
 
 # --- CHART GEN & SAVING ---
 
-def generate_and_save_delay_boxplot(long: pl.DataFrame, provider_colors: dict[str, str], out_path: str) -> None:
+def generate_and_save_delay_boxplot(
+    long: pl.DataFrame,
+    provider_colors: dict[str, str],
+    out_path: str,
+    *,
+    title: str = "Distribution of delay behind fastest node, by provider",
+) -> None:
     """
-    Takes in a long formatted offset dataframe and a mapping of node provider to colors dict. 
-    Generates and saves a box plot of every provider's delay behind the fastest node. 
+    Takes in a long formatted offset dataframe, a mapping of node provider to colors dict, and ``title`` which sets the chart title
+    so the same plot can be reused across transaction scopes (e.g. all transactions vs. only the transactions where every node reported).
+    Generates and saves a box plot of every provider's delay behind the fastest node.
     The plot is shaped by the following:
 
     - One box per provider, placed vertically in ``provider_colors`` order and filled with each provider's corresponding color
@@ -138,7 +145,7 @@ def generate_and_save_delay_boxplot(long: pl.DataFrame, provider_colors: dict[st
     _label_and_save(
         fig,
         ax,
-        title="Distribution of delay behind fastest node, by provider",
+        title=title,
         xlabel="Node provider",
         ylabel="Delay behind fastest node (ms)",
         out_path=out_path,
@@ -211,17 +218,27 @@ def generate_and_save_delay_fan_chart(binned_percentiles: pl.DataFrame, provider
     )
 
 
-def generate_and_save_speed_ranking_stacked_bar_chart_all_transactions(place_share: pl.DataFrame, provider_colors: dict[str, str], out_path: str) -> None:
+def generate_and_save_speed_ranking_stacked_bar_chart(
+    place_share: pl.DataFrame,
+    provider_colors: dict[str, str],
+    out_path: str,
+    *,
+    title: str = "Reporting speed ranking across all transactions, by provider",
+    ylabel: str = "Share of all transactions",
+) -> None:
     """
-    Takes in a place-share dataframe and a mapping of node provider to colors dict. 
-    Generates and saves a stacked bar chart showing the share of all transactions in which a provider reported in each 
+    Takes in a place-share dataframe, a mapping of node provider to colors dict, and ``title`` & ``ylabel`` which set the scope-specific text 
+    so the same plot can be reused across transaction scopes (e.g. all transactions vs. only the transactions where every node reported).
+
+    Generates and saves a stacked bar chart showing the share of transactions in which a provider reported in each
     speed rank (rank 1 = fastest node to report a transaction). The plot is shaped by the following:
 
     - One stacked bar per provider, ordered along the x axis by ``provider_colors``
-    - Each segment is colored by rank via ``_PLACEMENT_PALETTE`` (rank 1 = darkest). The ``DNR_LABEL`` segment
-      (transactions the provider never reported) is filled with ``_DNR_COLOR``
-    - The y axis plots the ``share`` values, so each bar sums to 1.0 (every transaction is either ranked or a DNR);
-      tick labels are formatted as percentages
+    - Each segment is colored by rank via ``_PLACEMENT_PALETTE`` (rank 1 = darkest). If ``place_share`` carries a
+      ``DNR_LABEL`` column (transactions the provider never reported) that segment is filled with ``_DNR_COLOR``.
+      ``place_share`` frames built with ``include_dnr=False`` have no such column and therefore no DNR segment.
+    - The y axis plots the ``share`` values, so each bar sums to 1.0 (every transaction is either ranked or, when
+      present, a DNR); tick labels are formatted as percentages
 
     Returns ``None``. Saves the finished chart to ``out_path``.
     """
@@ -240,8 +257,8 @@ def generate_and_save_speed_ranking_stacked_bar_chart_all_transactions(place_sha
     _label_and_save(
         fig,
         ax,
-        title="Reporting speed ranking across all transactions, by provider",
+        title=title,
         xlabel="Node provider",
-        ylabel="Share of all transactions",
+        ylabel=ylabel,
         out_path=out_path,
     )

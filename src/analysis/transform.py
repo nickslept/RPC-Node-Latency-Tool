@@ -17,6 +17,18 @@ def get_provider_order(providers: dict[str, str]) -> list[str]:
     return [providers[f"node_{i}"] for i in range(1, len(providers) + 1)]
 
 
+def filter_transactions_reported_by_all_nodes(df: pl.DataFrame) -> pl.DataFrame:
+    """
+    Takes in the cleaned parquet file's dataframe and returns a new dataframe keeping ONLY the
+    transactions that every node reported (i.e. rows with no null arrival times). The column
+    layout is unchanged.
+
+    Returns the dataframe described above.
+    """
+    arrival_cols = [col for col in df.columns if col != schema.TX_HASH_COLUMN]
+    return df.drop_nulls(arrival_cols)
+
+
 def build_offset_dataframe(df: pl.DataFrame) -> pl.DataFrame:
     """
     Takes in the cleaned parquet file's dataframe and creates a new dataframe with the following changes:
@@ -113,20 +125,26 @@ def bin_percentiles(long: pl.DataFrame, bin_seconds: int) -> pl.DataFrame:
     )
 
 
-def build_place_share_dataframe(df: pl.DataFrame, providers: dict[str, str]) -> pl.DataFrame:
+def build_place_share_dataframe(df: pl.DataFrame, providers: dict[str, str], include_dnr: bool = True) -> pl.DataFrame:
     """
     Takes in the cleaned parquet file's dataframe and creates a new dataframe with the following column layout:
 
     - ``provider``: A string containing the provider's name
-    
-    - ``1`` ... ``N`` : A float representing the fraction of ALL transactions in the run where the provider's report 
-    arrived in that place (``1`` = fastest node to report the transaction). 
-    
+
+    - ``1`` ... ``N`` : A float representing the fraction of ALL transactions in the run where the provider's report
+    arrived in that place (``1`` = fastest node to report the transaction).
+
     - ``DNR_LABEL``: A float representing the fraction of ALL transactions in the run where the provider did not report
     the transaction. This column takes on the name of whatever ``DNR_LABEL`` is actually set to. Default = "DNR".
+
+    ``include_dnr`` controls whether the ``DNR_LABEL`` column is produced. Set it to ``False`` when ``df`` only
+    contains transactions every node reported (see ``filter_transactions_reported_by_all_nodes``). With no nulls the DNR share
+    is always 0.0, so the column is dropped rather than carried over.
     """
     arrival_cols = [col for col in df.columns if col != schema.TX_HASH_COLUMN]
-    place_labels = [str(place) for place in range(1, len(arrival_cols) + 1)] + [DNR_LABEL]
+    place_labels = [str(place) for place in range(1, len(arrival_cols) + 1)]
+    if include_dnr:
+        place_labels.append(DNR_LABEL)
 
     places = (
         df.unpivot(on=arrival_cols, index=schema.TX_HASH_COLUMN, variable_name="provider", value_name="arrival_ns") # 3 cols remaining: tx_hash, provider, arrival_ns

@@ -88,7 +88,7 @@ def run_analysis(input_path: str, results_dir: str) -> int:
 
     saved: list[str] = []
 
-    path = os.path.join(output_dir, "delay_boxplot.png")
+    path = os.path.join(output_dir, "delay_boxplot_all_transactions.png")
     charts.generate_and_save_delay_boxplot(offset_dataframe_long, provider_colors, path)
     saved.append(path)
 
@@ -103,8 +103,33 @@ def run_analysis(input_path: str, results_dir: str) -> int:
         saved.append(path)
 
     path = os.path.join(output_dir, "speed_ranking_stacked_bar_chart_all_transactions.png")
-    charts.generate_and_save_speed_ranking_stacked_bar_chart_all_transactions(transform.build_place_share_dataframe(df, providers), provider_colors, path)
+    charts.generate_and_save_speed_ranking_stacked_bar_chart(transform.build_place_share_dataframe(df, providers), provider_colors, path)
     saved.append(path)
+
+    transactions_reported_by_all_nodes_dataframe = transform.filter_transactions_reported_by_all_nodes(df)
+    if transactions_reported_by_all_nodes_dataframe.height == 0:
+        print("[INFO] No transactions where every node reported were found. Skipping charts that only use full report-rate transactions...")
+    else:
+        all_nodes_reporting_offset_dataframe_long = transform.build_offset_dataframe_long(transform.build_offset_dataframe(transactions_reported_by_all_nodes_dataframe), providers)
+
+        path = os.path.join(output_dir, "delay_boxplot_transactions_reported_by_all_nodes.png")
+        charts.generate_and_save_delay_boxplot(
+            all_nodes_reporting_offset_dataframe_long,
+            provider_colors,
+            path,
+            title="Distribution of delay behind fastest node, by provider (only for transactions reported by all nodes)",
+        )
+        saved.append(path)
+
+        path = os.path.join(output_dir, "speed_ranking_stacked_bar_chart_transactions_reported_by_all_nodes.png")
+        charts.generate_and_save_speed_ranking_stacked_bar_chart(
+            transform.build_place_share_dataframe(transactions_reported_by_all_nodes_dataframe, providers, include_dnr=False),
+            provider_colors,
+            path,
+            title="Reporting speed ranking only across transactions reported by all nodes, by provider",
+            ylabel="Share of transactions",
+        )
+        saved.append(path)
 
     print(f"[SUMMARY] Analyzed {df.height:,} transactions across {len(ordered_providers)} providers.")
     for chart_path in saved:
