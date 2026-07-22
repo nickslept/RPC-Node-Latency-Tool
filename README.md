@@ -92,7 +92,29 @@ INFURA_KEY=
 
 ### Run settings
 
-All modifiable run settings can be found in `config.toml`. Inline comments extensively detail each variable. 
+**All modifiable run settings can be found in `config.toml`:**
+
+| Section | Setting | Description |
+|---------|---------|-------------|
+| `[promotion]` | `min_nodes_required` | Promotes a transaction into the write queue once this many unique nodes have reported it. |
+| `[promotion]` | `timeout_seconds` | Promotes a transaction into the write queue if its earliest recorded timestamp is older than this many seconds. |
+| `[promotion]` | `scanner_interval_seconds` | How often the scanner checks the in-memory dict (`entries`) for transactions whose earliest recorded timestamp is older than `timeout_seconds`. |
+| `[writer]` | `batch_size` | Amount of rows that need to accumulate in the write queue before being added to the Parquet file. |
+| `[precollection]` | `ack_timeout_seconds` | Max amount of time (in seconds) each node waits for a subscription ack before data collection. |
+| `[connection]` | `ping_interval_seconds` | How often the WebSocket keepalive ping is sent. |
+| `[connection]` | `ping_timeout_seconds` | How long to wait for a "pong" response from a node before considering the connection dead and force closing the connection. |
+| `[connection]` | `stop_on_disconnect` | `true` = if any node disconnects mid-run, data collection safely stops. `false` = data collection continues. |
+| `[filter]` | `contracts` | The Polymarket exchange contract addresses to subscribe to (CTF Exchange V2 and NegRisk CTF Exchange V2). |
+| `[filter]` | `order_filled_topic` | The `OrderFilled` event topic hash used to filter the log subscription. |
+
+**Each RPC node provider is defined by its own `[[nodes]]` entry (providers are in column order):**
+
+| Setting | Description |
+|---------|-------------|
+| `name` | The provider's name, used in run metadata and chart labels. |
+| `url_template` | The provider's WebSocket endpoint. API keys are added via the `.env` file (QuickNode also has a unique subdomain in addition to an API key). `url_template` may change in the future; double check your dashboard. |
+
+> Note: Node providers can be added and removed. If you choose to add more than the five default providers, you must also add colors to the `_PROVIDER_PALETTE` and `_PLACEMENT_PALETTE` variables in `src/analysis/charts.py` so every provider (and speed ranking) gets its own color.
 
 ## Usage
 
