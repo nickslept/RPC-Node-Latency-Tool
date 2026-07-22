@@ -21,6 +21,8 @@ The project runs in three stages, each with its own command:
 | **Clean** | `python -m src clean` | `data/processed/cleaned_run_*.parquet` |
 | **Analyze** | `python -m src analyze` | charts in `data/results/analysis_of_run_*/` |
 
+---
+
 ## How it works
 
 ### 1. Data collection pipeline
@@ -46,6 +48,8 @@ The project runs in three stages, each with its own command:
   - **Speed-ranking stacked bar chart**: the share of transactions each provider reported 1st, 2nd, …, or not at all ("DNR" = did not report).
   - The boxplot and speed-ranking chart are also generated a second time using only transactions that **every** node reported.
 
+---
+
 ## Requirements
 
 - Python 3.11+
@@ -63,6 +67,8 @@ python -m venv .venv
 
 pip install -e .
 ```
+
+---
 
 ## Configuration
 
@@ -117,6 +123,8 @@ python -m src analyze
 
 Pick a cleaned file from the list. Next, pick a bin size (in seconds) for the time-binned charts. Re-running with a different bin size adds new charts alongside the existing ones (time-binned charts include the bin size in the filename). All charts are saved to `data/results/analysis_of_run_*/`.
 
+---
+
 ## Sample data
 
 The [`sample-data/`](sample-data/) folder contains a completed run (a ~2 hour recording across the five default providers), its disconnect log, and every chart the analysis stage produces. For the time-series charts, 30s and 45s bin sizes were used. Here are two examples of what the output looks like from that folder:
@@ -128,6 +136,8 @@ The [`sample-data/`](sample-data/) folder contains a completed run (a ~2 hour re
 > **NOTE: This is a single two-hour window from one machine on one network; it demonstrates the tool's output, not a definitive provider ranking. Latency varies by region, plan tier, and many other factors, so run your own benchmarks.**
 
 To try the data cleaning and analysis stages without collecting your own data, move the sample `.parquet` file into `data/raw/` and run `python -m src clean` followed by `python -m src analyze`.
+
+---
 
 ## Project structure
 
@@ -152,6 +162,8 @@ src/
     ├── transform.py          # manages dataframes 
     └── charts.py             # manages charts
 ```
+
+---
 
 ## License
 
