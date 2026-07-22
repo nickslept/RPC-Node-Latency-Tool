@@ -178,7 +178,7 @@ src/
 │   ├── state.py              # shared state (queues, counters, events)
 │   └── disconnect_logger.py  # logs when nodes disconnect
 ├── cleaning/
-│   └── cleaner.py            # removes duplicate tx_hash/prepares raw run file for analysis
+│   └── cleaner.py            # handles duplicate tx_hash rows
 └── analysis/
     ├── runner.py             # orchestrates data analysis
     ├── transform.py          # prepares data for plotting 
