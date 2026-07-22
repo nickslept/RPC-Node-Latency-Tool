@@ -1,6 +1,6 @@
 <div align="center">
 
-# polymarket-rpc-latency-bench
+# Polygon RPC Latency Bench for Polymarket
 
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
@@ -127,7 +127,7 @@ Pick a cleaned file from the list. Next, pick a bin size (in seconds) for the ti
 
 ## Sample data
 
-The [`sample-data/`](sample-data/) folder contains a completed run (a ~2 hour recording across the five default providers), its disconnect log, and every chart the analysis stage produces. For the time-series charts, 30s and 45s bin sizes were used. Here are two examples of what the output looks like from that folder:
+The [`sample-data/`](sample-data/) folder contains a completed run (a ~2 hour recording across the five default providers), its disconnect log, and every chart the analysis stage produced. For the time-series charts, 30s and 45s bin sizes were used. Here are two examples of what the output looks like from that folder:
 
 ![Boxplot of each provider's delay behind the fastest node](sample-data/analysis_of_run_07-02-2026_19-17-50_UTC/delay_boxplot_transactions_reported_by_all_nodes.png)
 
