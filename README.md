@@ -99,7 +99,7 @@ Pick a raw file from the list. Duplicate `tx_hash` rows are merged by keeping ea
 python -m src analyze
 ```
 
-Pick a cleaned file from the list. Next, pick a bin size (in seconds) for the time-binned charts. Re-running with a different bin size adds new charts alongside the existing ones (binned filenames include the bin size). All charts are saved to `data/results/analysis_of_run_*/`.
+Pick a cleaned file from the list. Next, pick a bin size (in seconds) for the time-binned charts. Re-running with a different bin size adds new charts alongside the existing ones (time-binned charts include the bin size in the filename). All charts are saved to `data/results/analysis_of_run_*/`.
 
 ## Sample data
 
