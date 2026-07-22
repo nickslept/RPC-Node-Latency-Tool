@@ -213,7 +213,7 @@ def generate_and_save_delay_fan_chart(binned_percentiles: pl.DataFrame, provider
         ax,
         title=f"{provider}'s delay behind the fastest node, median and spread ({bin_seconds}s bins)",
         xlabel="Time since run start (min)",
-        ylabel="Median delay behind fastest node (ms)",
+        ylabel="Delay behind fastest node (ms)",
         out_path=out_path,
     )
 
