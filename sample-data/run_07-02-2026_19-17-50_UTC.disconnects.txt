@@ -1,0 +1,4 @@
+Run started: 2026-07-02T19:17:50.816348+00:00 | start_ref_ns=25400745671400
+2026-07-02T19:21:20.840836+00:00 | node_4 (quicknode) | DISCONNECT | Elapsed seconds: 210s | Reason: received 1001 (going away) upstream went away; then sent 1001 (going away) upstream went away
+2026-07-02T19:26:16.147035+00:00 | node_3 (drpc) | DISCONNECT | Elapsed seconds: 505s | Reason: no close frame received or sent
+2026-07-02T21:18:18.228132+00:00 | node_5 (alchemy) | DISCONNECT | Elapsed seconds: 7227s | Reason: sent 1002 (protocol error) control frame too long; no close frame received
