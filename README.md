@@ -13,13 +13,13 @@
 
 Polymarket trades settle on the Polygon blockchain, where each completed trade’s exchange contract emits an `OrderFilled` event. This tool subscribes, at the same time, to multiple RPC node providers who stream these events, timestamps each provider’s delivery of every trade with nanosecond precision, and visualizes the latency data. This is useful if you’re choosing between multiple providers for Polymarket tooling where reading real-time trade data as quickly as possible is crucial.
 
-The project runs in three stages, each with its own command:
+This program runs in three stages, each with its own command:
 
 | Stage | Command | Output |
 |-------|---------|--------|
-| **Collect** | `python -m src collect` | `data/raw/run_<timestamp>_UTC.parquet` |
+| **Collect** | `python -m src collect` | `data/raw/run_<timestamp>.parquet` |
 | **Clean** | `python -m src clean` | `data/processed/cleaned_run_*.parquet` |
-| **Analyze** | `python -m src analyze` | charts in `data/results/analysis_of_run_*/` |
+| **Analyze** | `python -m src analyze` | `data/results/analysis_of_run_*/` |
 
 ---
 
@@ -27,11 +27,11 @@ The project runs in three stages, each with its own command:
 
 ### 1. Data collection pipeline
 - Concurrently opens a WebSocket connection to every provider and sends each one an identical `eth_subscribe` request for `logs` emitted by the Polymarket exchange contracts with the `OrderFilled` event topic.
-- Recording only begins once **every** node has acknowledged its subscription (within `ack_timeout_seconds`). Each listener then discards messages until its node has been quiet for a moment so no provider has a head start.
+- Recording only begins once **every** node has acknowledged its subscription. Each listener then discards messages until its node has been quiet for a moment so no provider has a head start.
 - Each listener timestamps every incoming message with a monotonic clock the moment it arrives, then hands it off to the raw queue. JSON parsing happens in a separate task so nothing slows down the message receive loops.
 - A processor drains the raw queue, extracts each message’s transaction hash, and keeps only the **first** arrival time per node per transaction.
 - A transaction is promoted to the write queue once `min_nodes_required` nodes have reported it. A background scanner also promotes transactions whose earliest report is older than `timeout_seconds`, so a transaction still gets written even if a node misses it entirely. The same mechanism protects slow nodes, since a transaction is promoted by the scanner rather than waiting forever for a report from `min_nodes_required` nodes.
-- A writer batches rows in the write queue, and writes them to a Parquet file: one row per trade with its `tx_hash` and one arrival-time column per node, stored as nanoseconds since recording started. Run metadata (reference start/end times, UTC start time, and the node number to provider name mapping) is embedded in the file.
+- A writer takes rows in the write queue, and writes the data in batches to a Parquet file. Individual rows contains each unique trade with its transaction hash and one arrival-time column per node, stored as nanoseconds relative to the run start. Run metadata (reference start/end times from the monotonic clock, UTC start time, and the node number to provider name mapping) is embedded in the file.
 - Mid-run disconnects are logged to a `.disconnects.txt` file. `stop_on_disconnect` in the config controls whether the run ends or keeps going when a node disconnects.
 
 ### 2. Data cleaning
@@ -114,7 +114,7 @@ INFURA_KEY=
 | `name` | The provider's name, used in run metadata and chart labels. |
 | `url_template` | The provider's WebSocket endpoint. API keys are added via the `.env` file (QuickNode also has a unique subdomain in addition to an API key). `url_template` may change in the future; double check your dashboard. |
 
-> Note: Node providers can be added and removed. If you choose to add more than the five default providers, you must also add colors to the `_PROVIDER_PALETTE` and `_PLACEMENT_PALETTE` variables in `src/analysis/charts.py` so every provider (and speed ranking) gets its own color.
+> Note: Node providers can be added and removed. If you choose to add more than the five default providers, you must also add colors to the `_PROVIDER_PALETTE` and `_PLACEMENT_PALETTE` variables in `src/analysis/charts.py` so every provider (and speed rank) gets its own color.
 
 ## Usage
 
