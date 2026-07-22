@@ -31,20 +31,20 @@ This program runs in three stages, each with its own command:
 - Each listener timestamps every incoming message with a monotonic clock the moment it arrives, then hands it off to the raw queue. JSON parsing happens in a separate task so nothing slows down the message receive loops.
 - A processor drains the raw queue, extracts each message’s transaction hash, and keeps only the **first** arrival time per node per transaction.
 - A transaction is promoted to the write queue once `min_nodes_required` nodes have reported it. A background scanner also promotes transactions whose earliest report is older than `timeout_seconds`, so a transaction still gets written even if a node misses it entirely. The same mechanism protects slow nodes, since a transaction is promoted by the scanner rather than waiting forever for a report from `min_nodes_required` nodes.
-- A writer takes rows in the write queue, and writes the data in batches to a Parquet file. Individual rows contains each unique trade with its transaction hash and one arrival-time column per node, stored as nanoseconds relative to the run start. Run metadata (reference start/end times from the monotonic clock, UTC start time, and the node number to provider name mapping) is embedded in the file.
-- Mid-run disconnects are logged to a `.disconnects.txt` file. `stop_on_disconnect` in the config controls whether the run ends or keeps going when a node disconnects.
+- A writer task takes data from the write queue, and writes rows in batches to a Parquet file. Individual rows contain each unique trade with its transaction hash and one arrival-time column per node, stored as nanoseconds relative to the run start time. Run metadata (reference start/end times from the monotonic clock, UTC start time, and the node number to provider name mapping) is embedded in the file.
+- Mid-run disconnects are logged to a `run_*.disconnects.txt` file. `stop_on_disconnect` in the config controls whether the run ends or keeps going when a node disconnects.
 
 ### 2. Data cleaning
 - Removes duplicate `tx_hash` rows from a raw run file. Duplicates can occur when a transaction is promoted (e.g. by timeout) and a straggler node reports it afterwards, creating a second partial row for the same trade.
-- Duplicate rows are merged by keeping each node’s earliest non-null arrival time, leaving exactly one row per transaction. Files already free of duplicates are simply moved and renamed; run metadata is carried over either way.
+- Duplicate rows are merged by keeping each node’s earliest non-null arrival time, leaving exactly one row per transaction. Files already free of duplicates are simply moved and renamed. Run metadata is always carried over.
 
 ### 3. Data analysis
-- Converts each node’s arrival time into a delay (in ms) behind the fastest node for that transaction. Therefore, the fastest provider has a delay of 0 ms, and a null means the provider never reported the trade.
+- Converts each node’s arrival time into a delay (in ms) behind the fastest node for that transaction. Therefore, the fastest provider for a given transaction has a delay of 0 ms, and a null means that provider never reported the transaction.
 - For the time-series charts, transactions are binned (grouped) into fixed time intervals chosen by the user. 
 - The following charts are generated:
   - **Delay boxplot**: each provider’s distribution of delay behind the fastest node, across all transactions.
   - **Median delay line plot (all providers)**: a time-binned line plot depicting every provider’s median delay behind the fastest node for each transaction over time.
-  - **Fan charts (one per provider)**: a time-binned fan chart depicting the provider’s delay behind the fastest node for each transaction over time, with shaded p10–p90 and p25–p75 bands.
+  - **Fan charts (one per provider)**: a time-binned fan chart depicting the provider’s delay behind the fastest node for each transaction over time, with p10-p90 and p25-p75 regions shaded.
   - **Speed-ranking stacked bar chart**: the share of transactions each provider reported 1st, 2nd, …, or not at all ("DNR" = did not report).
   - The boxplot and speed-ranking chart are also generated a second time using only transactions that **every** node reported.
 
@@ -53,7 +53,7 @@ This program runs in three stages, each with its own command:
 ## Requirements
 
 - Python 3.11+
-- A websocket endpoint (with API key) from each provider you want to benchmark. The default config compares five: [Chainstack](https://chainstack.com), [Infura](https://infura.io), [dRPC](https://drpc.org), [QuickNode](https://quicknode.com), and [Alchemy](https://alchemy.com).
+- A WebSocket endpoint (with an API key) for each provider you want to benchmark. The default config compares five: [Chainstack](https://chainstack.com), [Infura](https://infura.io), [dRPC](https://drpc.org), [QuickNode](https://quicknode.com), and [Alchemy](https://alchemy.com).
 
 ## Installation
 
@@ -65,7 +65,7 @@ cd polymarket-rpc-latency-bench
 python -m venv .venv
 .venv\Scripts\activate
 
-pip install -e .
+pip install -e . # installs all dependencies
 ```
 
 ---
@@ -94,7 +94,7 @@ INFURA_KEY=
 
 **All modifiable run settings can be found in `config.toml`:**
 
-| Section | Setting | Description |
+| Table | Setting | Description |
 |---------|---------|-------------|
 | `[promotion]` | `min_nodes_required` | Promotes a transaction into the write queue once this many unique nodes have reported it. |
 | `[promotion]` | `timeout_seconds` | Promotes a transaction into the write queue if its earliest recorded timestamp is older than this many seconds. |
@@ -143,13 +143,13 @@ Pick a raw file from the list. Duplicate `tx_hash` rows are merged by keeping ea
 python -m src analyze
 ```
 
-Pick a cleaned file from the list. Next, pick a bin size (in seconds) for the time-binned charts. Re-running with a different bin size adds new charts alongside the existing ones (time-binned charts include the bin size in the filename). All charts are saved to `data/results/analysis_of_run_*/`.
+Pick a cleaned file from the list. Next, pick a bin size (in seconds) for the time-binned charts. Re-running with a different bin size adds new charts alongside the existing ones. All charts are saved to `data/results/analysis_of_run_*/`.
 
 ---
 
 ## Sample data
 
-The [`sample-data/`](sample-data/) folder contains a completed run (a ~2 hour recording across the five default providers), its disconnect log, and every chart the analysis stage produced. For the time-series charts, 30s and 45s bin sizes were used. Here are two examples of what the output looks like from that folder:
+The [`sample-data/`](sample-data/) folder contains a completed run (a ~2 hour recording across the five default providers), its disconnect log, and every chart the analysis stage produced. For the time-series charts, bin sizes of 30 and 45 seconds were used. Here are two examples of what the output looks like from that folder:
 
 ![Boxplot of each provider's delay behind the fastest node](sample-data/analysis_of_run_07-02-2026_19-17-50_UTC/delay_boxplot_transactions_reported_by_all_nodes.png)
 
@@ -165,15 +165,15 @@ To try the data cleaning and analysis stages without collecting your own data, m
 
 ```
 src/
-├── cli.py                    # argparse CLI: collect / clean / analyze
-├── config.py                 # config.toml & .env loading and validation
+├── cli.py                    # sets up CLI
+├── config.py                 # loads + validates: config.toml & .env
 ├── schema.py                 # handles parquet schema and file metadata
 ├── pipeline/
 │   ├── runner.py             # orchestrates a data collection run
 │   ├── connections.py        # opens + closes WebSocket connections
-│   ├── listener.py           # syncs nodes before data collection begins, per-node message receive loop & timestamping data arrival
-│   ├── processor.py          # message removal from raw queue, tx hash parsing, handles promotion of filled rows (based on min in config)
-│   ├── scanner.py            # handles timeout-based promotion of partially filled rows
+│   ├── listener.py           # syncs nodes before data collection begins, per-node message receive loop & timestamping 
+│   ├── processor.py          # message removal from raw queue, tx hash parsing, handles promotion of filled rows
+│   ├── scanner.py            # handles promotion of partially filled rows
 │   ├── writer.py             # writes Parquet file
 │   ├── state.py              # shared state (queues, counters, events)
 │   └── disconnect_logger.py  # logs when nodes disconnect
@@ -181,7 +181,7 @@ src/
 │   └── cleaner.py            # removes duplicate tx_hash/prepares raw run file for analysis
 └── analysis/
     ├── runner.py             # orchestrates data analysis
-    ├── transform.py          # manages dataframes 
+    ├── transform.py          # prepares data for plotting 
     └── charts.py             # manages charts
 ```
 
