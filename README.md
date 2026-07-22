@@ -1,9 +1,13 @@
+<div align="center">
+
 # polymarket-rpc-latency-bench
 
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 
 **Collects, cleans, and analyzes latency data across Polygon RPC node providers for Polymarket trades.**
+</div>
+
 
 ## Overview
 
@@ -20,15 +24,27 @@ The project runs in three stages, each with its own command:
 ## How it works
 
 ### 1. Data collection pipeline
-- 
+- Concurrently opens a WebSocket connection to every provider and sends each one an identical `eth_subscribe` request for `logs` emitted by the Polymarket exchange contracts with the `OrderFilled` event topic.
+- Recording only begins once **every** node has acknowledged its subscription (within `ack_timeout_seconds`). Each listener then discards messages until its node has been quiet for a moment so no provider has a head start.
+- Each listener timestamps every incoming message with a monotonic clock (`time.monotonic_ns()`) the moment it arrives, then hands it off to the raw queue. JSON parsing happens in a separate task so nothing slows down the message receive loops.
+- A processor drains the raw queue, extracts each message’s `tx_hash`, and keeps only the **first** arrival time per node per transaction.
+- A transaction is promoted to the write queue once `min_nodes_required` nodes have reported it. A background scanner also promotes transactions whose earliest report is older than `timeout_seconds`, so a transaction still gets written even if a node misses it entirely. The same mechanism protects slow nodes, since a transaction is promoted by the scanner rather than waiting forever for a report from `min_nodes_required` nodes.
+- A writer batches rows in the write queue, and writes them to a Parquet file: one row per trade with its `tx_hash` and one arrival-time column per node, stored as nanoseconds since recording started. Run metadata (reference start/end times, UTC start time, and the node number to provider name mapping) is embedded in the file.
+- Mid-run disconnects are logged to a `.disconnects.txt` file. `stop_on_disconnect` in the config controls whether the run ends or keeps going when a node disconnects.
 
 ### 2. Data cleaning
-- Removes
-- 
+- Removes duplicate `tx_hash` rows from a raw run file. Duplicates can occur when a transaction is promoted (e.g. by timeout) and a straggler node reports it afterwards, creating a second partial row for the same trade.
+- Duplicate rows are merged by keeping each node’s earliest non-null arrival time, leaving exactly one row per transaction. Files already free of duplicates are simply moved and renamed; run metadata is carried over either way.
 
 ### 3. Data analysis
-- talk about binning the data
-- talk about charts being generated
+- Converts each node’s arrival time into a delay (in ms) behind the fastest node for that transaction. Therefore, the fastest provider has a delay of 0 ms, and a null means the provider never reported the trade.
+- For the time-series charts, transactions are binned (grouped) into fixed time intervals chosen by the user. 
+- The following charts are generated:
+  - **Delay boxplot**: each provider’s distribution of delay behind the fastest node, across all transactions.
+  - **Median delay line plot (all providers)**: a time-binned line plot depicting every provider’s median delay behind the fastest node for each transaction over time.
+  - **Fan charts (one per provider)**: a time-binned fan chart depicting the provider’s delay behind the fastest node for each transaction over time, with shaded p10–p90 and p25–p75 bands.
+  - **Speed-ranking stacked bar chart**: the share of transactions each provider reported 1st, 2nd, …, or not at all ("DNR" = did not report).
+  - The boxplot and speed-ranking chart are also generated a second time using only transactions that **every** node reported.
 
 ## Requirements
 
@@ -91,7 +107,7 @@ Connects to every node, waits for all subscription acks, then starts recording t
 python -m src clean
 ```
 
-Pick a raw file from the list. Duplicate `tx_hash` rows are merged by keeping each node's earliest arrival time. Files that are already free of duplicate `tx_hash` rows are simply moved and renamed. Run metadata is carried over regardless. The cleaned file is saved in `data/processed/`.
+Pick a raw file from the list. Duplicate `tx_hash` rows are merged by keeping each node’s earliest arrival time. Files that are already free of duplicate `tx_hash` rows are simply moved and renamed. Run metadata is carried over regardless. The cleaned file is saved in `data/processed/`.
 
 ### 3. Analyze
 
