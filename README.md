@@ -119,6 +119,15 @@ Pick a cleaned file from the list. Next, pick a bin size (in seconds) for the ti
 
 ## Sample data
 
+The [`sample-data/`](sample-data/) folder contains a completed run (a ~2 hour recording across the five default providers), its disconnect log, and every chart the analysis stage produces. For the time-series charts, 30s and 45s bin sizes were used. Here are two examples of what the output looks like from that folder:
+
+![Boxplot of each provider's delay behind the fastest node](sample-data/analysis_of_run_07-02-2026_19-17-50_UTC/delay_boxplot_transactions_reported_by_all_nodes.png)
+
+![Fan chart of Alchemy's delay behind the fastest node over time](sample-data/analysis_of_run_07-02-2026_19-17-50_UTC/delay_fan_chart_alchemy_binned_45s.png)
+
+> **NOTE: This is a single two-hour window from one machine on one network; it demonstrates the tool's output, not a definitive provider ranking. Latency varies by region, plan tier, and many other factors, so run your own benchmarks.**
+
+To try the data cleaning and analysis stages without collecting your own data, move the sample `.parquet` file into `data/raw/` and run `python -m src clean` followed by `python -m src analyze`.
 
 ## Project structure
 
@@ -146,4 +155,6 @@ src/
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+Released under the [MIT License](LICENSE).
+
+Copyright &copy; 2026 Nick Sleptsov
